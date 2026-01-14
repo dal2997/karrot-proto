@@ -197,7 +197,7 @@ function FloatingButton({
   );
 }
 
-type Tone = "outdoor" | "indoor";
+type Tone = "outdoor" | "indoor" | "me";
 
 function MapMarker({
   x,
@@ -208,6 +208,7 @@ function MapMarker({
   pulse,
   tone = "outdoor",
   selected = false,
+  centerIcon, // ✅ 추가
 }: {
   x: number;
   y: number;
@@ -217,35 +218,73 @@ function MapMarker({
   pulse?: boolean;
   tone?: Tone;
   selected?: boolean;
+  centerIcon?: React.ReactNode; // ✅ 추가
 }) {
-  const toneClass =
-    tone === "indoor"
-      ? "bg-[#5B6B7A] text-white" // 실내: 슬레이트
-      : "bg-[#2FAF7A] text-white"; // 야외: 톤다운 그린
 
-  const pulseClass = tone === "indoor" ? "bg-[#5B6B7A]" : "bg-[#2FAF7A]";
+  const toneClass =
+    tone === "me"
+      ? "bg-white text-neutral-900 ring-neutral-200"
+      : tone === "indoor"
+      ? "bg-[#5B6B7A] text-white"
+      : "bg-[#2FAF7A] text-white";
+
+  const pulseClass =
+    tone === "me" ? "bg-orange-500" : tone === "indoor" ? "bg-[#5B6B7A]" : "bg-[#2FAF7A]";
+
+  if (tone === "me") {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        style={{ left: `${x}%`, top: `${y}%` }}
+        className="absolute z-[999] h-14 w-14 -translate-x-1/2 -translate-y-1/2"
+        aria-label="내 위치"
+      >
+        <span className="relative block h-full w-full">
+          {/* 바깥 ping (정확히 요소 중심 기준) */}
+          <span
+            className="absolute inset-0 rounded-full bg-orange-500/20 animate-ping"
+            style={{ animationDuration: "1.4s" }}
+          />
+
+          {/* 고정 링 */}
+          <span className="absolute inset-2 rounded-full border-2 border-orange-400 bg-white/85 shadow-sm" />
+
+          {/* 가운데 점 (진짜 정중앙) */}
+          <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-500 shadow" />
+        </span>
+      </button>
+    );
+  }
+
+
 
   return (
     <button
       type="button"
       onClick={onClick}
       style={{ left: `${x}%`, top: `${y}%` }}
-      className={cn(
-        "absolute -translate-x-1/2 -translate-y-1/2",
-        selected ? "z-[80]" : "z-[20]"
-      )}
+      className={cn("absolute -translate-x-1/2 -translate-y-1/2", selected ? "z-[80]" : "z-[20]")}
       aria-label={label ? `${label} 마커` : "마커"}
     >
-      {/* ✅ 여기서 icon/label을 분리: icon은 고정, label은 absolute로 옆에 */}
       <span className="relative block">
         {pulse && (
           <span
-            className={cn("absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 animate-ping", pulseClass)}
+            className={cn(
+              "absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 animate-ping",
+              pulseClass
+            )}
             style={{ animationDuration: "1.4s" }}
           />
         )}
 
-        {/* ✅ 아이콘(핀) 자체는 x,y 중심에 고정 */}
+        {/* ✅ 핑 중앙에 아이콘(내 위치) 넣기 */}
+        {pulse && centerIcon ? (
+          <span className="absolute left-1/2 top-1/2 z-[2] -translate-x-1/2 -translate-y-1/2">
+            {centerIcon}
+          </span>
+        ) : null}
+
         <span
           className={cn(
             "inline-flex h-9 w-9 items-center justify-center rounded-full shadow-md ring-2 ring-white",
@@ -253,10 +292,9 @@ function MapMarker({
             selected ? "scale-[1.03] shadow-lg" : ""
           )}
         >
-          {badge ?? "📍"}
+          {badge ? badge : "📍"}
         </span>
 
-        {/* ✅ 라벨은 absolute로 오른쪽에만 떠서 아이콘 위치 절대 안 밀림 */}
         {selected && label ? (
           <span
             className="
@@ -275,6 +313,7 @@ function MapMarker({
     </button>
   );
 }
+
 
 function ScorePill({ score }: { score: number }) {
   return (
@@ -681,33 +720,50 @@ export default function NeighborhoodMapView() {
       </div>
 
       {/* map */}
+      {/* map */}
       <div className="relative h-full overflow-hidden">
         <RealisticMapLayer />
 
-        {/* 지도 마커(모임) 개수 늘림 */}
-        {pinsOn &&
-          meetings.slice(0, markerSlots.length).map((m, i) => {
-            const id = (m as any).id ?? (m as any).title ?? i;
+        {/* ✅ 마커 오버레이: 여기만 위로 올리면 전체가 같이 움직임 */}
+        <div
+          className="absolute inset-0 z-10"
+          style={{ transform: "translateY(-56px)" }} // ← 여기 숫자만 조절
+        >
+          {/* ✅ 내 위치 */}
+          {pinsOn && (
+            <MapMarker
+              x={50}
+              y={50}
+              tone="me"
+              onClick={() => {
+                setActiveMarkerId((prev) => (prev === "me" ? null : "me"));
+                showToast("현재 위치", 1200);
+              }}
+            />
+          )}
 
-            return (
-              <MapMarker
-                key={id}
-                x={markerSlots[i].x}
-                y={markerSlots[i].y}
-                label={(m as any).title}
-                badge={markerSlots[i].badge}
-                tone={markerSlots[i].tone}
-                pulse={i === 0}
-                selected={activeMarkerId === id}
-                onClick={() => {
-                  setSelectedMeeting(m);
+          {/* ✅ 모임 마커들 */}
+          {pinsOn &&
+            meetings.slice(0, markerSlots.length).map((m, i) => {
+              const id = (m as any).id ?? (m as any).title ?? i;
 
-                  // ✅ 같은 마커 다시 누르면 라벨 닫기(토글)
-                  setActiveMarkerId((prev) => (prev === id ? null : id));
-                }}
-              />
-            );
-          })}
+              return (
+                <MapMarker
+                  key={id}
+                  x={markerSlots[i].x}
+                  y={markerSlots[i].y}
+                  label={(m as any).title}
+                  badge={markerSlots[i].badge}
+                  tone={markerSlots[i].tone}
+                  selected={activeMarkerId === id}
+                  onClick={() => {
+                    setSelectedMeeting(m);
+                    setActiveMarkerId((prev) => (prev === id ? null : id));
+                  }}
+                />
+              );
+            })}
+        </div>
 
 
         <div className="absolute right-4 top-24 z-20 flex flex-col gap-2">
@@ -758,7 +814,7 @@ export default function NeighborhoodMapView() {
       {/* BottomSheet */}
       <BottomSheet
         containerRef={frameRef}
-        bottomOffset={-50}
+        bottomOffset={-70}
         header={
           <div className="flex w-full items-center gap-2">
             <div className="text-sm font-extrabold text-neutral-900">
