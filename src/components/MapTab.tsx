@@ -371,70 +371,152 @@ function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => vo
 function RealisticMapLayer() {
   return (
     <div className="absolute inset-0">
-      <div className="absolute inset-0 bg-[#f4f6f8]" />
+      {/* ✅ Karrot-like base */}
+      <div className="absolute inset-0 bg-[#F7F8FA]" />
+
+      {/* ✅ very subtle noise */}
       <div
-        className="absolute inset-0 opacity-[0.08]"
+        className="absolute inset-0 opacity-[0.05]"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 20% 10%, rgba(0,0,0,0.25), transparent 35%), radial-gradient(circle at 80% 30%, rgba(0,0,0,0.18), transparent 32%), radial-gradient(circle at 40% 80%, rgba(0,0,0,0.18), transparent 36%)",
+            "radial-gradient(circle at 20% 15%, rgba(0,0,0,0.25), transparent 38%), radial-gradient(circle at 85% 30%, rgba(0,0,0,0.18), transparent 40%), radial-gradient(circle at 40% 85%, rgba(0,0,0,0.18), transparent 42%)",
         }}
       />
+
+      {/* ✅ buildings layer (soft gray blocks) */}
+      <div className="absolute inset-0 opacity-[0.9]">
+        {[
+          // left-top cluster
+          { l: 24, t: 90, w: 48, h: 16 },
+          { l: 78, t: 96, w: 34, h: 18 },
+          { l: 116, t: 82, w: 22, h: 28 },
+          { l: 42, t: 132, w: 56, h: 18 },
+          { l: 106, t: 132, w: 26, h: 16 },
+
+          // mid cluster
+          { l: 36, t: 260, w: 70, h: 22 },
+          { l: 118, t: 252, w: 34, h: 16 },
+          { l: 164, t: 268, w: 26, h: 18 },
+          { l: 62, t: 304, w: 44, h: 18 },
+          { l: 116, t: 310, w: 62, h: 16 },
+
+          // right cluster
+          { l: 272, t: 210, w: 54, h: 18 },
+          { l: 332, t: 206, w: 42, h: 22 },
+          { l: 292, t: 248, w: 82, h: 18 },
+          { l: 304, t: 286, w: 46, h: 16 },
+          { l: 356, t: 280, w: 30, h: 18 },
+
+          // bottom cluster
+          { l: 54, t: 520, w: 64, h: 18 },
+          { l: 128, t: 522, w: 44, h: 16 },
+          { l: 196, t: 516, w: 54, h: 20 },
+          { l: 268, t: 520, w: 52, h: 18 },
+          { l: 328, t: 532, w: 46, h: 16 },
+        ].map((b, i) => (
+          <div
+            key={i}
+            className="absolute rounded-[10px] bg-[#E7EAEE] shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+            style={{
+              left: b.l,
+              top: b.t,
+              width: b.w,
+              height: b.h,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ✅ roads / river / park */}
       <svg className="absolute inset-0" viewBox="0 0 430 740" preserveAspectRatio="none">
+        {/* river */}
         <path
-          d="M300 0 C290 90 320 160 310 240 C300 330 260 380 270 470 C285 610 350 640 360 740"
+          d="M305 -20 C292 110 330 170 318 260 C305 360 268 398 280 500 C296 635 360 660 372 760"
+          fill="none"
+          stroke="rgba(59,130,246,0.20)"
+          strokeWidth="42"
+          strokeLinecap="round"
+        />
+        <path
+          d="M305 -20 C292 110 330 170 318 260 C305 360 268 398 280 500 C296 635 360 660 372 760"
           fill="none"
           stroke="rgba(59,130,246,0.35)"
           strokeWidth="18"
           strokeLinecap="round"
         />
+
+        {/* main road */}
         <path
-          d="M300 0 C290 90 320 160 310 240 C300 330 260 380 270 470 C285 610 350 640 360 740"
+          d="M210 -20 C198 110 232 170 222 270 C212 380 186 426 198 530 C212 650 242 690 252 760"
           fill="none"
-          stroke="rgba(59,130,246,0.18)"
-          strokeWidth="34"
+          stroke="rgba(17,24,39,0.10)"
+          strokeWidth="26"
           strokeLinecap="round"
         />
+        {/* center line hint */}
         <path
-          d="M215 -20 C205 90 230 160 220 260 C210 360 190 420 200 520 C212 640 240 680 250 760"
+          d="M210 -20 C198 110 232 170 222 270 C212 380 186 426 198 530 C212 650 242 690 252 760"
           fill="none"
-          stroke="rgba(10,10,10,0.10)"
-          strokeWidth="22"
-          strokeLinecap="round"
-        />
-        <path
-          d="M215 -20 C205 90 230 160 220 260 C210 360 190 420 200 520 C212 640 240 680 250 760"
-          fill="none"
-          stroke="rgba(16,185,129,0.25)"
+          stroke="rgba(17,24,39,0.06)"
           strokeWidth="3"
           strokeLinecap="round"
+          strokeDasharray="6 10"
         />
+
+        {/* cross roads */}
         <path
-          d="M0 240 C90 250 140 220 210 240 C290 265 330 280 430 250"
+          d="M-10 230 C90 244 150 222 214 238 C294 260 340 276 450 246"
           fill="none"
-          stroke="rgba(10,10,10,0.09)"
+          stroke="rgba(17,24,39,0.08)"
           strokeWidth="18"
           strokeLinecap="round"
         />
         <path
-          d="M-10 420 C80 430 150 420 230 440 C310 460 360 470 440 460"
+          d="M-10 420 C90 432 160 420 236 442 C312 464 360 474 450 460"
           fill="none"
-          stroke="rgba(10,10,10,0.07)"
+          stroke="rgba(17,24,39,0.06)"
           strokeWidth="14"
           strokeLinecap="round"
         />
+
+        {/* park block */}
         <path
-          d="M85 260 C80 230 110 205 150 210 C185 215 205 205 235 210 C275 218 290 240 292 275 C295 330 292 370 285 420 C279 475 245 495 205 495 C170 495 140 485 115 468 C90 450 88 420 90 385 C92 345 92 305 85 260 Z"
-          fill="rgba(16,185,129,0.20)"
-          stroke="rgba(16,185,129,0.28)"
+          d="M92 252 C86 228 112 206 152 210 C190 214 208 206 240 212 C276 220 295 242 298 278
+             C302 338 296 382 288 432 C280 484 246 504 206 504
+             C170 504 138 494 112 476 C92 462 88 432 90 392
+             C92 350 100 310 92 252 Z"
+          fill="rgba(16,185,129,0.14)"
+          stroke="rgba(16,185,129,0.22)"
           strokeWidth="1.2"
         />
-        <text x="145" y="330" fill="rgba(6,95,70,0.70)" fontSize="14" fontWeight="700">
+        <text x="150" y="338" fill="rgba(6,95,70,0.75)" fontSize="14" fontWeight="700">
           보라매공원
         </text>
       </svg>
+
+      {/* ✅ tiny POI dots (optional, gives “map data” feel) */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.45]">
+        {[
+          { x: 84, y: 190 },
+          { x: 140, y: 210 },
+          { x: 180, y: 190 },
+          { x: 252, y: 220 },
+          { x: 300, y: 270 },
+          { x: 120, y: 410 },
+          { x: 210, y: 450 },
+          { x: 320, y: 500 },
+        ].map((p, i) => (
+          <div
+            key={i}
+            className="absolute h-1.5 w-1.5 rounded-full bg-[#9CA3AF]"
+            style={{ left: p.x, top: p.y }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
+
 
 type ChipKey = (typeof mapChips)[number]["key"];
 
