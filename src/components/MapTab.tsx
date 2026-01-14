@@ -623,6 +623,10 @@ function ReasonPanel({ metrics }: { metrics: MatchMetrics }) {
 
 export default function NeighborhoodMapView() {
 
+  const chipRowRef = useRef<HTMLDivElement | null>(null);
+  const [chipAtEnd, setChipAtEnd] = useState(false);
+
+
   const MARKER_Y_OFFSET = -6; // ✅ -10은 과함. -6 정도가 자연스러움
   const shiftY = (y: number) => Math.max(10, Math.min(90, y + MARKER_Y_OFFSET)); // ✅ 여백 확보
 
@@ -665,6 +669,8 @@ export default function NeighborhoodMapView() {
     toastTimerRef.current = window.setTimeout(() => setToast(null), ms);
   }, []);
 
+
+
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
@@ -680,8 +686,18 @@ export default function NeighborhoodMapView() {
 
   /** chips: 경도 -> 모임 */
   const chipsForView = useMemo(() => {
-    return mapChips.map((c) => (c.key === "gyeongdo" ? { ...c, label: "모임" } : c));
-  }, []);
+      const mapped = mapChips.map((c) => (c.key === "gyeongdo" ? { ...c, label: "모임" } : c));
+
+      // 원하는 순서: 할인중(deal) -> 모임(gyeongdo) -> 나머지
+      const ORDER: string[] = ["deal", "gyeongdo", "food", "exercise", "beauty", "benefit"];
+
+      const orderIndex = (key: string) => {
+        const idx = ORDER.indexOf(key);
+        return idx === -1 ? 999 : idx;
+      };
+
+      return [...mapped].sort((a, b) => orderIndex(a.key) - orderIndex(b.key));
+    }, []);
 
   const activeChipLabel = useMemo(() => {
     return chipsForView.find((c) => c.key === activeChip)?.label ?? "주변";
@@ -882,24 +898,64 @@ export default function NeighborhoodMapView() {
           </div>
         </div>
 
-        {/* chips */}
-        <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
-          {chipsForView.map((c) => (
-            <Chip
-              key={c.key}
-              active={activeChip === c.key}
-              label={c.label}
-              emoji={c.emoji}
-              onClick={() => {
-                setActiveChip(c.key);
-                if (c.label === "모임") openMatchFilter();
-              }}
-            />
-          ))}
+        {/* chips (modern) */}
+        <div className="relative px-4 pb-3">
+          {/* 왼쪽 페이드 */}
+          <div className="pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-white to-transparent" />
+          {/* 오른쪽 페이드 */}
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-14 bg-gradient-to-l from-white to-transparent" />
+
+          {/* chips row */}
+          <div
+            ref={chipRowRef}
+            className="
+              flex items-center gap-2 pr-14
+              overflow-x-auto overflow-y-visible py-1
+              [scrollbar-width:none]
+              [&::-webkit-scrollbar]:hidden
+            "
+            style={{ scrollBehavior: "smooth" }}
+            onScroll={() => {
+              const el = chipRowRef.current;
+              if (!el) return;
+              const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+              setChipAtEnd(atEnd);
+            }}
+          >
+            {chipsForView.map((c) => (
+              <Chip
+                key={c.key}
+                active={activeChip === c.key}
+                label={c.label}
+                emoji={c.emoji}
+                onClick={() => {
+                  setActiveChip(c.key);
+                  if (c.label === "모임") openMatchFilter();
+                }}
+              />
+            ))}
+          </div>
+
+          {/* 오른쪽 고정 꺽쇠 버튼 */}
+          <button
+            type="button"
+            aria-label={chipAtEnd ? "처음으로" : "더보기"}
+            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white p-3 shadow-lg ring-1 ring-neutral-200"
+            onClick={() => {
+              const el = chipRowRef.current;
+              if (!el) return;
+
+              if (chipAtEnd) {
+                el.scrollTo({ left: 0, behavior: "smooth" });
+              } else {
+                el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
+              }
+            }}
+          >
+            <span className="text-lg font-black text-neutral-700">{chipAtEnd ? "‹" : "›"}</span>
+          </button>
         </div>
       </div>
-
-      {/* map */}
       {/* map */}
       <div className="relative h-full overflow-hidden">
         <RealisticMapLayer />
@@ -1244,13 +1300,10 @@ export default function NeighborhoodMapView() {
 
                     {/* ✅ 5초 점검(요약 한 줄) */}
                     <div className="mt-2 text-xs font-semibold text-neutral-500">
-                      <div className="mt-2 text-xs font-semibold text-neutral-500">
-                        5초 점검: 성사 {Math.round(opt.metrics.successProb)}% ·
-                        취소위험 {Math.round(opt.metrics.cancelRisk)}%(↓) ·
-                        초보환영 {Math.round(opt.metrics.beginnerFriendly)}% ·
-                        연령적합 {Math.round(opt.metrics.ageFit)}%
-                      </div>
-
+                      5초 점검: 성사 {Math.round(opt.metrics.successProb)}% ·
+                      취소위험 {Math.round(opt.metrics.cancelRisk)}%(↓) ·
+                      초보환영 {Math.round(opt.metrics.beginnerFriendly)}% ·
+                      연령적합 {Math.round(opt.metrics.ageFit)}%
                     </div>
 
                   </div>
