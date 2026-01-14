@@ -272,12 +272,21 @@ function Top5Card({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpenDetail}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") onOpenDetail();
+      }}
       className="
+        w-full text-left cursor-pointer
         rounded-[28px] bg-white p-4
         ring-1 ring-neutral-200/80
         shadow-[0_8px_24px_rgba(0,0,0,0.06)]
         hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]
         transition-shadow
+        active:scale-[0.99]
+        select-none
       "
     >
       <div className="flex gap-4">
@@ -305,10 +314,10 @@ function Top5Card({
                 onMouseEnter={() => setWhyOpen(true)}
                 onMouseLeave={() => setWhyOpen(false)}
               >
-                {/* ✅ 나랑 X점: 호버 트리거 */}
+                {/* 나랑 X점: 호버 트리거 */}
                 <ScoreBadge score={item.score} />
 
-                {/* ✅ 호버 팝오버(기존 '왜 나랑 맞을까' 내용 이쪽으로 이동) */}
+                {/* 호버 팝오버 */}
                 {whyOpen ? (
                   <div className="absolute right-0 top-[44px] z-20 w-[260px] rounded-2xl bg-white p-3 text-[12px] leading-relaxed text-neutral-700 shadow-xl ring-1 ring-neutral-200">
                     <div className="font-extrabold text-neutral-900">추천 이유</div>
@@ -325,9 +334,13 @@ function Top5Card({
                 ) : null}
               </div>
 
-              {/* ✅ 미니리포트: 나랑X점 바로 아래 */}
+              {/* 미니리포트: 카드 클릭으로 전파 막기 */}
               <button
-                onClick={onOpenReport}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenReport();
+                }}
                 className={`${PILL} bg-white text-neutral-700 ring-neutral-200 hover:bg-neutral-50`}
               >
                 <span className={`${PILL_ICON} bg-neutral-100 text-neutral-700`}>
@@ -338,29 +351,13 @@ function Top5Card({
             </div>
           </div>
 
-
           <MetaLine when={item.when} area={item.area} members={item.members} />
-
-                    {/* ✅ 컴팩트: 기본은 얇게, hover/tap 시 팝오버로 '왜 나랑 맞을까' 노출 */}
-
-
-          <div className="mt-3 flex gap-2">
-            <button
-              onClick={onOpenDetail}
-              className="flex-1 rounded-2xl bg-neutral-900 px-3 py-3 text-sm font-extrabold text-white hover:bg-black"
-            >
-              모임 보기
-            </button>
-            <button className="inline-flex items-center gap-2 rounded-2xl border border-neutral-300 px-4 py-3 text-sm font-extrabold text-neutral-800 hover:bg-neutral-50">
-              <Heart className="h-5 w-5" />
-              관심
-            </button>
-          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 /** 신규/인기 리스트 행 */
 function SimpleRow({ item, onClick }: { item: MeetingItem; onClick: () => void }) {
@@ -939,9 +936,8 @@ function LifeMeetView() {
 
               {/* 짧은 안내 (한 줄~두 줄) */}
               <div className="mt-2 text-[11px] leading-relaxed text-neutral-600">
-                성사 가능성은 <span className="font-bold text-neutral-700">우천확률</span>과{" "}
-                <span className="font-bold text-neutral-700">구성원의 과거 모임 성사 이력</span>을
-                종합 반영한 점수예요.
+                성사 가능성 = <span className="font-bold text-neutral-700">우천확률</span>{" "}+{" "}
+                <span className="font-bold text-neutral-700">구성원의 종합 점수</span>
               </div>
 
               {/* 요약 본문: 빈칸 안 나게 조금 더 붙임 */}
