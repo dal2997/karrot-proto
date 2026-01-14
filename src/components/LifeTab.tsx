@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
   X,
+  CloudRain,
 } from "lucide-react";
 
 type MeetingItem = {
@@ -38,6 +39,8 @@ type PersonalizedMeeting = MeetingItem & {
     genderRatio: string;
     attendance: string;
     summary: string;
+
+    successProbability: number; // 0~100
   };
 };
 
@@ -365,6 +368,18 @@ function GreenScorePill({ score }: { score: number }) {
   );
 }
 
+function SuccessChanceChip({ value }: { value: number }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-[12px] font-extrabold text-emerald-800 ring-1 ring-emerald-100">
+      <span className="text-emerald-700">성사 가능성</span>
+      <span className="rounded-xl bg-white px-2 py-1 text-[12px] font-extrabold text-emerald-900 ring-1 ring-emerald-100">
+        {value}%
+      </span>
+    </div>
+  );
+}
+
+
 function ReportCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-3xl bg-white p-4 ring-1 ring-neutral-200">
@@ -376,8 +391,91 @@ function ReportCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ExceptionModal({
+  open,
+  onClose,
+  onSeeIndoor,
+  onProceedAnyway,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSeeIndoor: () => void;
+  onProceedAnyway: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 px-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onMouseDown={onClose}
+        >
+          <motion.div
+            className="relative w-full max-w-[320px] overflow-hidden rounded-[22px] bg-white ring-1 ring-neutral-200 shadow-2xl"
+            initial={{ scale: 0.98, opacity: 0, y: 8 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.98, opacity: 0, y: 8 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 pt-5 pb-4 text-center">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-orange-50 ring-1 ring-orange-100">
+                <CloudRain className="h-7 w-7 text-orange-500" />
+              </div>
+
+              <div className="mt-4 text-[16px] font-extrabold text-neutral-900">
+                모임 취소 위험 알림
+              </div>
+              <div className="mt-2 text-[12px] leading-relaxed text-neutral-600">
+                오늘 오후 소나기 예보가 있어요.
+                <br />
+                주변 실내 운동 공간이나 카페 모임으로 바꿔볼까요?
+              </div>
+
+              <button
+                onClick={onSeeIndoor}
+                className="mt-4 w-full rounded-2xl bg-orange-500 py-3 text-sm font-extrabold text-white hover:bg-orange-600"
+              >
+                실내 활동 보기
+              </button>
+
+              <button
+                onClick={onProceedAnyway}
+                className="mt-2 w-full rounded-2xl bg-white py-3 text-sm font-extrabold text-neutral-900 ring-1 ring-neutral-200 hover:bg-neutral-50"
+              >
+                그래도 참여
+              </button>
+
+              <button
+                onClick={onClose}
+                className="mt-2 w-full rounded-2xl bg-white py-3 text-sm font-extrabold text-neutral-600 ring-1 ring-neutral-200 hover:bg-neutral-50"
+              >
+                닫기
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+
+
 /** ✅ 풀스크린 상세: 오버레이로 띄워서 BottomNav/TopAppBar 가리기 */
-function MeetingDetailScreen({ item, onBack }: { item: PersonalizedMeeting; onBack: () => void }) {
+function MeetingDetailScreen({
+  item,
+  onBack,
+  onProceedAnyway,
+}: {
+  item: PersonalizedMeeting;
+  onBack: () => void;
+  onProceedAnyway: (m: PersonalizedMeeting) => void;
+}) {
+
+  const [exceptionOpen, setExceptionOpen] = useState(false);
   return (
     <div className="fixed inset-0 z-[60] bg-white">
       {/* header */}
@@ -472,21 +570,47 @@ function MeetingDetailScreen({ item, onBack }: { item: PersonalizedMeeting; onBa
             <button className="w-24 rounded-2xl border border-neutral-300 py-3 text-sm font-extrabold text-neutral-900">
               관심
             </button>
-            <button className="flex-1 rounded-2xl bg-orange-500 py-3 text-sm font-extrabold text-white hover:bg-orange-600">
+            <button
+              onClick={() => setExceptionOpen(true)}
+              className="flex-1 rounded-2xl bg-orange-500 py-3 text-sm font-extrabold text-white hover:bg-orange-600"
+            >
               참여하기
             </button>
           </div>
         </div>
       </div>
+
+      {/* ✅ (3번) 여기 추가 */}
+      <ExceptionModal
+        open={exceptionOpen}
+        onClose={() => setExceptionOpen(false)}
+        onSeeIndoor={() => {
+          // 실내 활동 보기: 일단 팝업만 닫고(나중에 실내 리스트로 연결)
+          setExceptionOpen(false);
+          // TODO: 실내 활동 화면/리스트로 이동시키고 싶으면 여기서 setDetail(null) 같은 흐름 대신
+          // indoor 화면 state를 열어주면 됨
+        }}
+        onProceedAnyway={() => {
+          // 그래도 참여: 팝업 닫고 -> LifeMeetView로 올려서 리뷰 띄우기
+          setExceptionOpen(false);
+          onProceedAnyway(item);
+        }}
+      />
+
     </div>
   );
 }
+
 
 function LifeMeetView() {
   const [subTab, setSubTab] = useState<"life" | "meet" | "cafe">("meet");
   const [selected, setSelected] = useState<MeetingItem | null>(null); // 신규/인기용
   const [detail, setDetail] = useState<PersonalizedMeeting | null>(null); // TOP5 풀스크린
   const [report, setReport] = useState<PersonalizedMeeting | null>(null);
+
+  const [reviewFor, setReviewFor] = useState<PersonalizedMeeting | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
+
 
   // ✅ 훅(useMemo)은 항상 호출되어야 함 → detail 분기보다 위
   const top5 = useMemo<PersonalizedMeeting[]>(
@@ -511,6 +635,7 @@ function LifeMeetView() {
           genderRatio: "남 55% / 여 45% (균형형)",
           attendance: "최근 4주 평균 출석률 78%",
           summary: "활동 반경과 시간대가 딱 맞고, 꾸준히 참여할 가능성이 높아서 추천했어요.",
+          successProbability: 90,
         },
       },
       {
@@ -533,6 +658,7 @@ function LifeMeetView() {
           genderRatio: "남 48% / 여 52%",
           attendance: "정기 모임 출석률 72%",
           summary: "처음 시작하기 좋은 구조라서, 부담 없이 정착하기 좋아 보여요.",
+          successProbability: 80,
         },
       },
       {
@@ -555,6 +681,7 @@ function LifeMeetView() {
           genderRatio: "남 50% / 여 50%",
           attendance: "모임 출석률 69%",
           summary: "가볍게 즐기는 아웃도어 스타일이랑 맞아서 추천했어요.",
+          successProbability: 67,
         },
       },
       {
@@ -577,6 +704,7 @@ function LifeMeetView() {
           genderRatio: "남 60% / 여 40%",
           attendance: "출석률 75%",
           summary: "짧고 확실하게 운동하는 성향이랑 잘 맞아요.",
+          successProbability: 66,
         },
       },
       {
@@ -599,6 +727,7 @@ function LifeMeetView() {
           genderRatio: "남 45% / 여 55%",
           attendance: "출석률 67%",
           summary: "체험형이라 진입장벽 낮고, 취향 확장에 좋아요.",
+          successProbability: 55,
         },
       },
     ],
@@ -669,8 +798,22 @@ function LifeMeetView() {
 
   // ✅ 여기서 분기해야 훅 순서 안 깨짐
   if (detail) {
-    return <MeetingDetailScreen item={detail} onBack={() => setDetail(null)} />;
+    return (
+      <MeetingDetailScreen
+        item={detail}
+        onBack={() => setDetail(null)}
+        onProceedAnyway={(m) => {
+          // ✅ 1) 상세 닫고
+          setDetail(null);
+
+          // ✅ 2) 리뷰 팝업 띄우기
+          setReviewFor(m);
+          setReviewOpen(true);
+        }}
+      />
+    );
   }
+
 
   return (
     <div className="bg-neutral-50 pb-24">
@@ -749,17 +892,27 @@ function LifeMeetView() {
           <div className="space-y-4">
             {/* 상단 요약 카드 */}
             <div className="rounded-3xl bg-neutral-50 p-4 ring-1 ring-neutral-200">
-              <div className="flex items-center justify-between">
-                <GreenScorePill score={report.score} />
-                <div className="text-xs font-bold text-neutral-500">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <GreenScorePill score={report.score} />
+                  <SuccessChanceChip value={report.report.successProbability} />
+                </div>
+
+                <div className="shrink-0 text-xs font-bold text-neutral-500">
                   개인화 분석(더미)
                 </div>
               </div>
+
+              <div className="mt-2 text-[11px] leading-relaxed text-neutral-600">
+                <span className="font-bold text-neutral-700">성사 가능성</span>은 우천확률·모임 내 구성원의 과거 모임 성사 이력을 종합 반영한 점수입니다.
+              </div>
+
               <div className="mt-4 text-sm font-extrabold text-neutral-900">요약</div>
               <div className="mt-2 text-[15px] leading-relaxed text-neutral-700">
                 {report.report.summary}
               </div>
             </div>
+
 
             {/* ✅ 2열 그리드 */}
             <div className="grid grid-cols-2 gap-3">
@@ -783,6 +936,66 @@ function LifeMeetView() {
           </div>
         ) : null}
       </Sheet>
+
+      <Sheet
+        open={reviewOpen}
+        onClose={() => {
+          setReviewOpen(false);
+          setReviewFor(null);
+        }}
+        titleLeft="러닝 모임은 즐거우셨나요?"
+        titleRight="경험을 공유해 주세요"
+      >
+        {reviewFor ? (
+          <div className="space-y-4">
+            <div className="text-sm font-bold text-neutral-700">
+              {reviewFor.title}
+            </div>
+
+            {/* 별점(더미 UI) */}
+            <div className="flex items-center justify-center gap-2 py-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <button
+                  key={i}
+                  className="grid h-10 w-10 place-items-center rounded-full bg-neutral-50 ring-1 ring-neutral-200 text-xl"
+                  title={`${i + 1}점`}
+                >
+                  ☆
+                </button>
+              ))}
+            </div>
+
+            {/* 추천태그(더미) */}
+            <div>
+              <div className="text-xs font-extrabold text-neutral-900">추천 태그</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {["분위기가 좋아요", "초보자에게 적합", "또 가고 싶어요", "코스가 좋아요"].map(
+                  (t) => (
+                    <button
+                      key={t}
+                      className="rounded-full bg-orange-50 px-3 py-2 text-xs font-extrabold text-orange-700 ring-1 ring-orange-100 hover:bg-orange-100"
+                    >
+                      #{t}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setReviewOpen(false);
+                setReviewFor(null);
+              }}
+              className="w-full rounded-3xl bg-neutral-900 py-4 text-base font-extrabold text-white"
+            >
+              리뷰 남기기
+            </button>
+          </div>
+        ) : null}
+      </Sheet>
+
+
 
       {/* 신규/인기 간단 상세 */}
       <Sheet
