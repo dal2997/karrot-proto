@@ -357,8 +357,10 @@ function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => vo
           </div>
 
           {/* ✅ LifeTab 느낌의 “왜 적절한지” 카드 */}
-          {/* ✅ 기존 '점수 이유' 박스 교체 */}
-          <ReasonPanel metrics={opt.metrics} />
+          <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
+            <div className="text-xs font-extrabold text-neutral-700">왜 이 모임이 적절해요?</div>
+            <div className="mt-1 text-sm text-neutral-700">{reason}</div>
+          </div>
 
         </div>
         <ChevronRight className="h-5 w-5 text-neutral-400" />
@@ -621,6 +623,9 @@ function ReasonPanel({ metrics }: { metrics: MatchMetrics }) {
 
 export default function NeighborhoodMapView() {
 
+  const MARKER_Y_OFFSET = -6; // ✅ -10은 과함. -6 정도가 자연스러움
+  const shiftY = (y: number) => Math.max(10, Math.min(90, y + MARKER_Y_OFFSET)); // ✅ 여백 확보
+
   const [pinsOn, setPinsOn] = useState(false); // ✅ 위치 버튼 누르면 마커 표시
   const [nudgeLocate, setNudgeLocate] = useState(true); // ✅ 첫 화면 유도 이펙트
   const [activeMarkerId, setActiveMarkerId] = useState<string | number | null>(null); // ✅ 클릭한 마커만 라벨 표시
@@ -853,8 +858,9 @@ export default function NeighborhoodMapView() {
   return (
     <div
       ref={frameRef}
-      className="relative mx-auto w-full max-w-[430px] h-[calc(100vh-56px-76px)] min-h-[620px] overflow-hidden bg-white"
+      className="relative mx-auto w-full max-w-[430px] h-[100dvh] overflow-hidden bg-white"
     >
+
       {/* header */}
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
@@ -901,13 +907,12 @@ export default function NeighborhoodMapView() {
         {/* ✅ 마커 오버레이: 여기만 위로 올리면 전체가 같이 움직임 */}
         <div
           className="absolute inset-0 z-10"
-          style={{ transform: "translateY(-56px)" }} // ← 여기 숫자만 조절
         >
           {/* ✅ 내 위치 */}
           {pinsOn && (
             <MapMarker
               x={50}
-              y={50}
+              y={shiftY(50)}
               tone="me"
               onClick={() => {
                 setActiveMarkerId((prev) => (prev === "me" ? null : "me"));
@@ -925,7 +930,7 @@ export default function NeighborhoodMapView() {
                 <MapMarker
                   key={id}
                   x={markerSlots[i].x}
-                  y={markerSlots[i].y}
+                  y={shiftY(markerSlots[i].y)}
                   label={(m as any).title}
                   badge={markerSlots[i].badge}
                   tone={markerSlots[i].tone}
@@ -988,7 +993,7 @@ export default function NeighborhoodMapView() {
       {/* BottomSheet */}
       <BottomSheet
         containerRef={frameRef}
-        bottomOffset={-70}
+        bottomOffset={0}
         header={
           <div className="flex w-full items-center gap-2">
             <div className="text-sm font-extrabold text-neutral-900">
@@ -1239,8 +1244,13 @@ export default function NeighborhoodMapView() {
 
                     {/* ✅ 5초 점검(요약 한 줄) */}
                     <div className="mt-2 text-xs font-semibold text-neutral-500">
-                      5초 점검: 성사 {Math.round(opt.metrics.successProb)}% · 취소위험 {Math.round(opt.metrics.cancelRisk)}%(↓) ·
-                      초보환영 {Math.round(opt.metrics.beginnerFriendly)}% · 연령적합 {Math.round(opt.metrics.ageFit)}%
+                      <div className="mt-2 text-xs font-semibold text-neutral-500">
+                        5초 점검: 성사 {Math.round(opt.metrics.successProb)}% ·
+                        취소위험 {Math.round(opt.metrics.cancelRisk)}%(↓) ·
+                        초보환영 {Math.round(opt.metrics.beginnerFriendly)}% ·
+                        연령적합 {Math.round(opt.metrics.ageFit)}%
+                      </div>
+
                     </div>
 
                   </div>
@@ -1269,6 +1279,14 @@ export default function NeighborhoodMapView() {
                   <div className="text-xs font-semibold text-neutral-500">추천 1순위 기준</div>
                 </div>
                 <div className="mt-2 text-base font-extrabold text-neutral-900">{(pickedOption.meeting as any).title}</div>
+
+                <div className="mt-2 text-xs font-semibold text-neutral-500">
+                  5초 점검: 성사 {Math.round(pickedOption.metrics.successProb)}% ·
+                  취소 {Math.round(pickedOption.metrics.cancelRisk)}%(↓) ·
+                  초보 {Math.round(pickedOption.metrics.beginnerFriendly)}% ·
+                  연령 {Math.round(pickedOption.metrics.ageFit)}%
+                </div>
+
                 <div className="mt-1 text-sm text-neutral-600">
                   {(pickedOption.meeting as any).location ?? (pickedOption.meeting as any).place ?? "장소"} ·{" "}
                   {(pickedOption.meeting as any).distanceKm ?? "?"}km
