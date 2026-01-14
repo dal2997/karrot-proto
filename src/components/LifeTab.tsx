@@ -262,6 +262,8 @@ function Top5Card({
   onOpenReport: () => void;
   onOpenDetail: () => void;
 }) {
+  const [whyOpen, setWhyOpen] = useState(false);
+
   return (
     <div
       className="
@@ -285,20 +287,39 @@ function Top5Card({
               <div className="truncate text-base font-extrabold text-neutral-900">
                 {item.title}
               </div>
-              <div className="mt-1 text-sm text-neutral-600">{item.desc}</div>
+              <div className="mt-0.5 text-[13px] leading-snug text-neutral-600">
+                {item.desc}
+              </div>
             </div>
-            <ScoreBadge score={item.score} />
-          </div>
 
-          <MetaLine when={item.when} area={item.area} members={item.members} />
+            {/* 오른쪽: 나랑X점(호버 팝오버) + 미니리포트 버튼 세로 스택 */}
+            <div className="relative flex shrink-0 flex-col items-end gap-2">
+              <div
+                className="relative"
+                onMouseEnter={() => setWhyOpen(true)}
+                onMouseLeave={() => setWhyOpen(false)}
+              >
+                {/* ✅ 나랑 X점: 호버 트리거 */}
+                <ScoreBadge score={item.score} />
 
-          <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
-            <div className="text-[12px] font-extrabold text-neutral-900">
-              왜 나랑 맞을까?
-            </div>
-            <div className="mt-1 text-[12px] text-neutral-700">{item.why}</div>
+                {/* ✅ 호버 팝오버(기존 '왜 나랑 맞을까' 내용 이쪽으로 이동) */}
+                {whyOpen ? (
+                  <div className="absolute right-0 top-[44px] z-20 w-[260px] rounded-2xl bg-white p-3 text-[12px] leading-relaxed text-neutral-700 shadow-xl ring-1 ring-neutral-200">
+                    <div className="font-extrabold text-neutral-900">추천 이유</div>
+                    <div className="mt-1">{item.why}</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <span className="rounded-full bg-neutral-50 px-2 py-1 text-[11px] font-bold text-neutral-600 ring-1 ring-neutral-200">
+                        우천확률 반영
+                      </span>
+                      <span className="rounded-full bg-neutral-50 px-2 py-1 text-[11px] font-bold text-neutral-600 ring-1 ring-neutral-200">
+                        활동 반경 유사
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
 
-            <div className="mt-2 flex justify-end">
+              {/* ✅ 미니리포트: 나랑X점 바로 아래 */}
               <button
                 onClick={onOpenReport}
                 className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[12px] font-extrabold text-neutral-700 ring-1 ring-neutral-200 hover:bg-neutral-50"
@@ -310,6 +331,12 @@ function Top5Card({
               </button>
             </div>
           </div>
+
+
+          <MetaLine when={item.when} area={item.area} members={item.members} />
+
+                    {/* ✅ 컴팩트: 기본은 얇게, hover/tap 시 팝오버로 '왜 나랑 맞을까' 노출 */}
+
 
           <div className="mt-3 flex gap-2">
             <button
@@ -382,9 +409,9 @@ function SuccessChanceChip({ value }: { value: number }) {
 
 function ReportCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl bg-white p-4 ring-1 ring-neutral-200">
-      <div className="text-xs font-bold text-neutral-500">{label}</div>
-      <div className="mt-2 text-[15px] font-extrabold leading-snug text-neutral-900">
+    <div className="rounded-3xl bg-white p-3 ring-1 ring-neutral-200">
+      <div className="text-[11px] font-extrabold text-neutral-500">{label}</div>
+      <div className="mt-1 text-[14px] font-extrabold leading-snug text-neutral-900">
         {value}
       </div>
     </div>
@@ -624,9 +651,9 @@ function LifeMeetView() {
         img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=320&q=60",
         vibe: "빡세지 않게, 꾸준히 · 초보/복귀 러너 많아요",
         when: "오늘",
-        members: "12명 · 3/15 참여중",
+        members: "3/15 참여중",
         score: 94,
-        why: "최근 동네 스포츠 참여 기록 + 출석률 높은 스타일",
+        why: "최근 동네 스포츠 참여 기록이 있고, 모임 출석률이 높은 타입이라 꾸준히 참여할 가능성이 높아요.",
         report: {
           carrotTradeFit: "동네 거래/활동 반경이 보라매권과 유사",
           taste: "운동/산책 키워드 선호 + 저녁 시간대 활동",
@@ -647,7 +674,7 @@ function LifeMeetView() {
         img: "/badminton.png",
         vibe: "기초 위주 · 함께 배우는 분위기",
         when: "이번 주 토",
-        members: "28명 · 6/20 참여중",
+        members: "6/20 참여중",
         score: 91,
         why: "초보 친화/학습형 모임을 자주 저장한 패턴",
         report: {
@@ -670,7 +697,7 @@ function LifeMeetView() {
         img: "https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&w=320&q=60",
         vibe: "천천히 걷고 쉬는 타임 많음",
         when: "이번 주 일",
-        members: "64명 · 8/30 참여중",
+        members: "8/30 참여중",
         score: 88,
         why: "주말 야외활동 선호 + ‘산책’ 콘텐츠 소비",
         report: {
@@ -693,7 +720,7 @@ function LifeMeetView() {
         img: "/tk.png",
         vibe: "시간 엄수 · 가성비 운동",
         when: "내일",
-        members: "18명 · 4/12 참여중",
+        members: "4/12 참여중",
         score: 86,
         why: "짧은 시간대 모임을 선호하는 패턴",
         report: {
@@ -716,7 +743,7 @@ function LifeMeetView() {
         img: "/climb.png",
         vibe: "친절한 설명 · 무리하지 않아요",
         when: "이번 주 금",
-        members: "22명 · 5/16 참여중",
+        members: "5/16 참여중",
         score: 84,
         why: "새로운 스포츠 체험을 저장한 이력",
         report: {
@@ -882,37 +909,40 @@ function LifeMeetView() {
         onClose={() => setReport(null)}
         titleLeft={
           <span className="block">
-            AI 미니리포트 ·{" "}
-            <span className="font-extrabold">{report?.title}</span>
+            AI 미니리포트 · <span className="font-extrabold">{report?.title}</span>
           </span>
         }
-        titleRight={"개인화 분석(더미)"}
       >
         {report ? (
           <div className="space-y-4">
             {/* 상단 요약 카드 */}
+            {/* 상단 요약 카드 (촘촘 버전) */}
             <div className="rounded-3xl bg-neutral-50 p-4 ring-1 ring-neutral-200">
+              {/* 한 줄 헤더 */}
               <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-extrabold text-neutral-900">
+                  요약
+                </div>
+
+                {/* 칩 2개를 오른쪽에 compact하게 */}
                 <div className="flex items-center gap-2">
                   <GreenScorePill score={report.score} />
                   <SuccessChanceChip value={report.report.successProbability} />
                 </div>
-
-                <div className="shrink-0 text-xs font-bold text-neutral-500">
-                  개인화 분석(더미)
-                </div>
               </div>
 
+              {/* 짧은 안내 (한 줄~두 줄) */}
               <div className="mt-2 text-[11px] leading-relaxed text-neutral-600">
-                <span className="font-bold text-neutral-700">성사 가능성</span>은 우천확률·모임 내 구성원의 과거 모임 성사 이력을 종합 반영한 점수입니다.
+                성사 가능성은 <span className="font-bold text-neutral-700">우천확률</span>과{" "}
+                <span className="font-bold text-neutral-700">구성원의 과거 모임 성사 이력</span>을
+                종합 반영한 점수예요.
               </div>
 
-              <div className="mt-4 text-sm font-extrabold text-neutral-900">요약</div>
-              <div className="mt-2 text-[15px] leading-relaxed text-neutral-700">
+              {/* 요약 본문: 빈칸 안 나게 조금 더 붙임 */}
+              <div className="mt-3 text-[15px] leading-relaxed text-neutral-800">
                 {report.report.summary}
               </div>
             </div>
-
 
             {/* ✅ 2열 그리드 */}
             <div className="grid grid-cols-2 gap-3">
