@@ -43,6 +43,71 @@ type PersonalizedMeeting = MeetingItem & {
   };
 };
 
+type ChatMsg = {
+  id: string;
+  name: string;
+  text: string;
+  time: string; // "15:22" 같은 더미
+  isHost?: boolean;
+};
+
+// TOP1(보라매 러닝) 전용 더미 채팅 — 필요하면 여기만 바꾸면 됨
+const DUMMY_CHAT_TOP1: ChatMsg[] = [
+  {
+    id: "c1",
+    name: "러닝마요",
+    text: "오늘 19:00에 보라매공원 정문(큰 시계탑 앞)에서 만나요! 늦으면 채팅 남겨주세요 🙌",
+    time: "15:18",
+    isHost: true,
+  },
+  {
+    id: "c2",
+    name: "초코러너",
+    text: "저 완전 초보인데 pace 어느 정도로 뛰나요? 5km가 처음이라서요 ㅠㅠ",
+    time: "15:19",
+  },
+  {
+    id: "c3",
+    name: "러닝마요",
+    text: "초보분들 많아요! 1km 워밍업 걷기+가벼운 조깅 → 3km 천천히 → 1km 쿨다운으로 갈게요 👍",
+    time: "15:20",
+    isHost: true,
+  },
+  {
+    id: "c4",
+    name: "소금빵",
+    text: "준비물 뭐 챙기면 좋을까요? 물만 들고가면 되나용",
+    time: "15:21",
+  },
+  {
+    id: "c5",
+    name: "러닝마요",
+    text: "물(또는 이온음료) + 가벼운 바람막이 추천! 스트레칭 매트는 없어도 괜찮아요 🙂",
+    time: "15:22",
+    isHost: true,
+  },
+  {
+    id: "c6",
+    name: "봉천뚜벅",
+    text: "저 5분 정도 늦을 수도 있는데… 정문 시계탑 앞에서 시작해요?",
+    time: "15:23",
+  },
+  {
+    id: "c7",
+    name: "러닝마요",
+    text: "네! 19:05까지는 정문 시계탑 앞에서 대기할게요. 이후엔 ‘호수 방향 산책로 입구’로 이동합니다!",
+    time: "15:24",
+    isHost: true,
+  },
+  {
+    id: "c8",
+    name: "민트초",
+    text: "와 운영 공지 깔끔해서 안심돼요 ㅋㅋ 오늘 뵐게요!",
+    time: "15:26",
+  },
+];
+
+
 function cn(...classes: Array<string | false | undefined | null>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -420,6 +485,71 @@ function ReportCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ChatBubbles({ messages }: { messages: ChatMsg[] }) {
+  return (
+    <div className="rounded-3xl bg-white p-5 ring-1 ring-neutral-200">
+      <div className="flex items-end justify-between">
+        <div className="text-lg font-extrabold text-neutral-900">모임 채팅</div>
+        <div className="text-xs font-bold text-neutral-500">최근 대화</div>
+      </div>
+
+      {/* 운영 공지 느낌의 상단 안내 */}
+      <div className="mt-3 rounded-2xl bg-neutral-50 p-4 ring-1 ring-neutral-200">
+        <div className="text-xs font-extrabold text-neutral-900">초보 안심 · 운영 공지</div>
+        <ul className="mt-2 space-y-1 text-xs leading-relaxed text-neutral-700">
+          <li>• 집합: 보라매공원 정문 ‘시계탑 앞’ (19:00)</li>
+          <li>• 코스: 워밍업 → 5km 가볍게 → 쿨다운 스트레칭</li>
+          <li>• 준비물: 물/이온음료, 가벼운 바람막이(선택)</li>
+          <li>• 늦을 때: 채팅에 “도착 예정 시간” 남겨주세요</li>
+        </ul>
+      </div>
+
+      {/* 채팅 리스트 (내부 스크롤) */}
+      <div className="mt-4 max-h-[260px] space-y-3 overflow-auto pr-1">
+        {messages.map((m) => (
+          <div key={m.id} className="flex items-start gap-3">
+            {/* 아바타 */}
+            <div
+              className={cn(
+                "grid h-9 w-9 shrink-0 place-items-center rounded-2xl text-xs font-extrabold ring-1",
+                m.isHost
+                  ? "bg-orange-50 text-orange-700 ring-orange-100"
+                  : "bg-neutral-100 text-neutral-700 ring-neutral-200"
+              )}
+              title={m.isHost ? "운영자" : "참여자"}
+            >
+              {m.name.slice(0, 1)}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <div className="truncate text-xs font-extrabold text-neutral-900">
+                  {m.name}
+                  {m.isHost ? (
+                    <span className="ml-1 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-extrabold text-orange-700 ring-1 ring-orange-100">
+                      운영
+                    </span>
+                  ) : null}
+                </div>
+                <div className="text-[10px] font-bold text-neutral-400">{m.time}</div>
+              </div>
+
+              <div className="mt-1 rounded-2xl bg-neutral-50 px-4 py-3 text-xs leading-relaxed text-neutral-800 ring-1 ring-neutral-200">
+                {m.text}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 text-[11px] font-bold text-neutral-500">
+        * 프로토타입 더미 대화예요. 실제론 실시간 채팅/공지로 대체됩니다.
+      </div>
+    </div>
+  );
+}
+
+
 function ExceptionModal({
   open,
   onClose,
@@ -506,7 +636,7 @@ function MeetingDetailScreen({
 
   const [exceptionOpen, setExceptionOpen] = useState(false);
   return (
-    <div className="fixed inset-0 z-[60] bg-white">
+    <div className="fixed inset-0 z-[60] bg-white overflow-y-auto">
       {/* header */}
       <div className="sticky top-0 z-[70] bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-[430px] px-5 py-3">
@@ -590,6 +720,13 @@ function MeetingDetailScreen({
             <div className="mt-1 text-xs text-neutral-700">{item.why}</div>
           </div>
         </div>
+
+        {/* ✅ 모임 채팅 (더미) — 모임 분위기 카드 아래 */}
+        <div className="mt-4">
+          {/* TOP1만 적용하려면 조건 걸기 */}
+          {item.id === 1001 ? <ChatBubbles messages={DUMMY_CHAT_TOP1} /> : null}
+        </div>
+
       </div>
 
       {/* bottom CTA */}
