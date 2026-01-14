@@ -357,10 +357,9 @@ function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => vo
           </div>
 
           {/* ✅ LifeTab 느낌의 “왜 적절한지” 카드 */}
-          <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
-            <div className="text-xs font-extrabold text-neutral-700">왜 이 모임이 적절해요?</div>
-            <div className="mt-1 text-sm text-neutral-700">{reason}</div>
-          </div>
+          {/* ✅ 기존 '점수 이유' 박스 교체 */}
+          <ReasonPanel metrics={opt.metrics} />
+
         </div>
         <ChevronRight className="h-5 w-5 text-neutral-400" />
       </div>
@@ -520,11 +519,20 @@ function RealisticMapLayer() {
 
 type ChipKey = (typeof mapChips)[number]["key"];
 
+type MatchMetrics = {
+  successProb: number;     // 0-100
+  cancelRisk: number;      // 0-100 (높을수록 위험)
+  beginnerFriendly: number; // 0-100
+  ageFit: number;          // 0-100
+  ageDist?: { label: string; value: number }[]; // optional
+};
+
 type MatchOption = {
   id: string;
   meeting: Meeting;
   score: number;
   reason: string;
+  metrics: MatchMetrics;   // ✅ 추가
 };
 
 type MatchStep = "closed" | "filter" | "matching" | "options" | "confirm" | "hostSetup";
@@ -543,6 +551,72 @@ function pickReason(i: number) {
     "날씨/시간/거리 조건이 안정적이라 취소율이 낮아요.",
   ];
   return reasons[i % reasons.length];
+}
+
+// UI 컴포넌트: 바 + 숫자(당근톤)
+function MetricRow({
+  label,
+  value,
+  goodHigh = true,
+  hint,
+}: {
+  label: string;
+  value: number; // 0-100
+  goodHigh?: boolean; // true면 높을수록 좋음, false면 낮을수록 좋음
+  hint?: string;
+}) {
+  const shown = Math.round(value);
+  const barValue = goodHigh ? shown : 100 - shown;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <div className="font-bold text-neutral-700">
+          {label} {hint ? <span className="font-semibold text-neutral-400">· {hint}</span> : null}
+        </div>
+        <div className="font-extrabold text-neutral-900">{shown}%</div>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+        <div
+          className="h-full bg-orange-500"
+          style={{ width: `${barValue}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ReasonPanel({ metrics }: { metrics: MatchMetrics }) {
+  return (
+    <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
+      <div className="text-xs font-extrabold text-neutral-700">종합 이유</div>
+
+      <div className="mt-2 grid gap-3">
+        <MetricRow label="성사 가능성" value={metrics.successProb} hint="최근 유사 모임 기준" />
+        <MetricRow label="취소 위험" value={metrics.cancelRisk} goodHigh={false} hint="낮을수록 좋음" />
+        <MetricRow label="초보 환영" value={metrics.beginnerFriendly} hint="초보 참여비중" />
+        <MetricRow label="연령대 적합도" value={metrics.ageFit} hint="내 프로필 대비" />
+      </div>
+
+      {/* 분포(선택) */}
+      {metrics.ageDist ? (
+        <div className="mt-3 flex gap-2">
+          {metrics.ageDist.map((a) => (
+            <div key={a.label} className="flex-1 rounded-xl bg-white px-2 py-2 text-center ring-1 ring-neutral-200">
+              <div className="text-[11px] font-bold text-neutral-500">{a.label}</div>
+              <div className="text-sm font-extrabold text-neutral-900">{a.value}%</div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* 근거 bullet */}
+      <div className="mt-3 text-xs text-neutral-600">
+        <div>• 최근 2주 성사율 {Math.round(metrics.successProb)}% (유사 조건 n≈15)</div>
+        <div>• 취소/노쇼 위험 {Math.round(metrics.cancelRisk)}% (동네 평균 대비 낮음)</div>
+      </div>
+    </div>
+  );
 }
 
 export default function NeighborhoodMapView() {
@@ -718,18 +792,36 @@ export default function NeighborhoodMapView() {
       // 상위/중간/하위 느낌 섞어서 3개 뽑기 + 정렬(점수 높은 순)
       const raw = [0, 2, 4]
         .map((k, idx) => basePool[(k + idx) % basePool.length])
-        .map(({ m, s }, idx) => ({
-          id: `opt-${idx}`,
-          meeting: m,
-          score: Math.min(99, Math.max(50, s + (idx === 0 ? 2 : idx === 1 ? 0 : -3))),
-          reason:
-            idx === 0
-              ? "유사 유저들의 참여율/재참여율이 높고, 이동거리 대비 만족도가 가장 높아요."
-              : idx === 1
-              ? "시간대와 장소 선호가 잘 맞고, 성사 확률이 안정적으로 높아요."
-              : "조건은 약간 덜 맞지만 근처에서 빠르게 모일 수 있는 대안이에요.",
-        }))
+        .map(({ m, s }, idx) => {
+          const score = Math.min(99, Math.max(50, s + (idx === 0 ? 2 : idx === 1 ? 0 : -3)));
+
+          const metrics = {
+            successProb: Math.min(95, 70 + idx * 6 + (score - 70) * 0.6),      // 70~95
+            cancelRisk: Math.max(4, 18 - idx * 4 - (score - 70) * 0.3),        // 4~18 (낮을수록 좋음)
+            beginnerFriendly: Math.min(96, 60 + idx * 8 + (score - 70) * 0.5), // 60~96
+            ageFit: Math.min(92, 58 + idx * 7 + (score - 70) * 0.55),         // 58~92
+            ageDist: [
+              { label: "20대", value: 42 },
+              { label: "30대", value: 46 },
+              { label: "40대+", value: 12 },
+            ],
+          };
+
+          return {
+            id: `opt-${idx}`,
+            meeting: m,
+            score,
+            reason:
+              idx === 0
+                ? "유사 유저 재참여율이 높고, 거리 대비 만족도가 가장 높아요."
+                : idx === 1
+                ? "시간대·장소 선호가 잘 맞고, 성사 확률이 안정적으로 높아요."
+                : "조건은 약간 덜 맞지만 근처에서 빠르게 모일 수 있는 대안이에요.",
+            metrics,
+          };
+        })
         .sort((a, b) => b.score - a.score);
+
 
       setMatchOptions(raw);
       setMatchStep("options");
@@ -1142,10 +1234,15 @@ export default function NeighborhoodMapView() {
                       {(opt.meeting as any).distanceKm ?? "?"}km · {(opt.meeting as any).participants ?? (opt.meeting as any).count ?? ""}
                     </div>
 
-                    <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
-                      <div className="text-xs font-extrabold text-neutral-700">점수 이유</div>
-                      <div className="mt-1 text-sm text-neutral-700">{opt.reason}</div>
+                    {/* ✅ 종합 이유(바 + 분포) */}
+                    <ReasonPanel metrics={opt.metrics} />
+
+                    {/* ✅ 5초 점검(요약 한 줄) */}
+                    <div className="mt-2 text-xs font-semibold text-neutral-500">
+                      5초 점검: 성사 {Math.round(opt.metrics.successProb)}% · 취소위험 {Math.round(opt.metrics.cancelRisk)}%(↓) ·
+                      초보환영 {Math.round(opt.metrics.beginnerFriendly)}% · 연령적합 {Math.round(opt.metrics.ageFit)}%
                     </div>
+
                   </div>
                   <ChevronRight className="mt-1 h-5 w-5 text-neutral-400" />
                 </div>
