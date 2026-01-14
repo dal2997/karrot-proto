@@ -506,7 +506,7 @@ export default function NeighborhoodMapView() {
       extra.push({
         ...(src as any),
         id: `dummy-${i}`,
-        title: `${(src as any).title ?? "모임"} · ${i + 1}`,
+        title: (src as any).title ?? "모임",
         distanceKm: ((i % 7) + 1) * 0.3,
         participants: `${(i % 6) + 3}명`,
         time: i % 2 === 0 ? "오늘" : "내일",
@@ -514,6 +514,7 @@ export default function NeighborhoodMapView() {
         aiScore: seededScore(i),
         aiReason: pickReason(i),
       } as any);
+
     }
     return [...base, ...extra];
   }, []);
