@@ -212,14 +212,20 @@ function SectionHeader({
   );
 }
 
+/** ✅ (1번) 공통 pill 스타일: 나랑x점 / 미니리포트 동일 사이즈 */
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-extrabold leading-none ring-1";
+const PILL_ICON =
+  "inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px]";
+
 /** “나랑 94점” 뱃지 정리 */
 function ScoreBadge({ score }: { score: number }) {
   return (
     <div
-      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-orange-50 px-3 py-1.5 text-[12px] font-extrabold leading-none text-orange-600 ring-1 ring-orange-100"
+      className={`${PILL} bg-orange-50 text-orange-600 ring-orange-100`}
       title={`나랑 ${score}점`}
     >
-      <Sparkles className="h-4 w-4" />
+      <Sparkles className="h-3.5 w-3.5" />
       <span>{`나랑 ${score}점`}</span>
     </div>
   );
@@ -322,9 +328,9 @@ function Top5Card({
               {/* ✅ 미니리포트: 나랑X점 바로 아래 */}
               <button
                 onClick={onOpenReport}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[12px] font-extrabold text-neutral-700 ring-1 ring-neutral-200 hover:bg-neutral-50"
+                className={`${PILL} bg-white text-neutral-700 ring-neutral-200 hover:bg-neutral-50`}
               >
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-neutral-100 text-[12px]">
+                <span className={`${PILL_ICON} bg-neutral-100 text-neutral-700`}>
                   i
                 </span>
                 미니리포트
