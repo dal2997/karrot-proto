@@ -197,7 +197,7 @@ function FloatingButton({
   );
 }
 
-type Tone = "orange" | "blue" | "green";
+type Tone = "outdoor" | "indoor";
 
 function MapMarker({
   x,
@@ -206,7 +206,8 @@ function MapMarker({
   badge,
   onClick,
   pulse,
-  tone = "orange",
+  tone = "outdoor",
+  selected = false,
 }: {
   x: number;
   y: number;
@@ -215,10 +216,14 @@ function MapMarker({
   onClick: () => void;
   pulse?: boolean;
   tone?: Tone;
+  selected?: boolean;
 }) {
   const toneClass =
-    tone === "blue" ? "bg-blue-600" : tone === "green" ? "bg-emerald-600" : "bg-orange-500";
-  const pulseClass = toneClass;
+    tone === "indoor"
+      ? "bg-[#5B6B7A] text-white" // 실내: 슬레이트
+      : "bg-[#2FAF7A] text-white"; // 야외: 톤다운 그린
+
+  const pulseClass = tone === "indoor" ? "bg-[#5B6B7A]" : "bg-[#2FAF7A]";
 
   return (
     <button
@@ -228,18 +233,29 @@ function MapMarker({
       className="absolute -translate-x-1/2 -translate-y-1/2"
       aria-label={label ? `${label} 마커` : "마커"}
     >
-      <span className="relative inline-flex items-center">
+      {/* ✅ 여기서 icon/label을 분리: icon은 고정, label은 absolute로 옆에 */}
+      <span className="relative block">
         {pulse && (
           <span
-            className={cn("absolute inline-flex h-10 w-10 rounded-full opacity-20 animate-ping", pulseClass)}
+            className={cn("absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-20 animate-ping", pulseClass)}
             style={{ animationDuration: "1.4s" }}
           />
         )}
-        <span className={cn("inline-flex h-8 w-8 items-center justify-center rounded-full text-white shadow-lg", toneClass)}>
+
+        {/* ✅ 아이콘(핀) 자체는 x,y 중심에 고정 */}
+        <span
+          className={cn(
+            "inline-flex h-9 w-9 items-center justify-center rounded-full shadow-md ring-2 ring-white",
+            toneClass,
+            selected ? "scale-[1.03] shadow-lg" : ""
+          )}
+        >
           {badge ?? "📍"}
         </span>
-        {label ? (
-          <span className="ml-2 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-neutral-900 shadow ring-1 ring-neutral-200">
+
+        {/* ✅ 라벨은 absolute로 오른쪽에만 떠서 아이콘 위치 절대 안 밀림 */}
+        {selected && label ? (
+          <span className="absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-neutral-900 shadow ring-1 ring-neutral-200">
             {label}
           </span>
         ) : null}
@@ -397,6 +413,11 @@ function pickReason(i: number) {
 }
 
 export default function NeighborhoodMapView() {
+
+  const [pinsOn, setPinsOn] = useState(false); // ✅ 위치 버튼 누르면 마커 표시
+  const [nudgeLocate, setNudgeLocate] = useState(true); // ✅ 첫 화면 유도 이펙트
+  const [activeMarkerId, setActiveMarkerId] = useState<string | number | null>(null); // ✅ 클릭한 마커만 라벨 표시
+
   /** 폰 프레임 */
   const frameRef = useRef<HTMLDivElement | null>(null);
 
@@ -488,26 +509,32 @@ export default function NeighborhoodMapView() {
   /** 지도 마커 슬롯(늘림) */
   const markerSlots = useMemo(
     () => [
-      { x: 52, y: 48, tone: "orange" as const, badge: "🏃" },
-      { x: 60, y: 30, tone: "blue" as const, badge: "🚇" },
-      { x: 35, y: 62, tone: "green" as const, badge: "🚶" },
-      { x: 42, y: 40, tone: "orange" as const, badge: "⚡" },
-      { x: 66, y: 52, tone: "blue" as const, badge: "☕" },
-      { x: 28, y: 46, tone: "green" as const, badge: "🧘" },
-      { x: 48, y: 66, tone: "orange" as const, badge: "🍜" },
-      { x: 70, y: 38, tone: "blue" as const, badge: "🎁" },
-      { x: 32, y: 30, tone: "green" as const, badge: "🏸" },
-      { x: 56, y: 60, tone: "orange" as const, badge: "🎯" },
-      { x: 24, y: 56, tone: "green" as const, badge: "📌" },
-      { x: 76, y: 58, tone: "blue" as const, badge: "🛍️" },
-      { x: 18, y: 34, tone: "green" as const, badge: "🥗" },
-      { x: 82, y: 30, tone: "blue" as const, badge: "🎬" },
-      { x: 50, y: 28, tone: "orange" as const, badge: "🏓" },
-      { x: 12, y: 50, tone: "green" as const, badge: "📚" },
-      { x: 86, y: 50, tone: "blue" as const, badge: "🎧" },
+      // ✅ 야외(outdoor): 러닝/산책/공원/등산/야외활동
+      { x: 52, y: 48, tone: "outdoor" as const, badge: "🏃" }, // 러닝
+      { x: 35, y: 62, tone: "outdoor" as const, badge: "🚶" }, // 산책
+      { x: 42, y: 40, tone: "outdoor" as const, badge: "⚡" }, // 빠른 매칭(야외)
+      { x: 24, y: 56, tone: "outdoor" as const, badge: "📌" }, // 핀/핫스팟
+      { x: 50, y: 28, tone: "outdoor" as const, badge: "🏓" }, // (야외로 가정) 탁구/스포츠
+      { x: 18, y: 34, tone: "outdoor" as const, badge: "🥗" }, // 가벼운 픽업/야외 느낌
+      { x: 48, y: 66, tone: "outdoor" as const, badge: "🍜" }, // 식사(야외/근처 모임)
+      { x: 56, y: 60, tone: "outdoor" as const, badge: "🎯" }, // 목표/챌린지(야외)
+
+      // ✅ 실내(indoor): 카페/취미/공방/영화/쇼핑/실내운동
+      { x: 66, y: 52, tone: "indoor" as const, badge: "☕" }, // 카페
+      { x: 28, y: 46, tone: "indoor" as const, badge: "🧘" }, // 요가/필라테스(실내)
+      { x: 32, y: 30, tone: "indoor" as const, badge: "🏸" }, // 배드민턴(실내)
+      { x: 12, y: 50, tone: "indoor" as const, badge: "📚" }, // 스터디/독서
+      { x: 76, y: 58, tone: "indoor" as const, badge: "🛍️" }, // 쇼핑
+      { x: 82, y: 30, tone: "indoor" as const, badge: "🎬" }, // 영화/문화
+      { x: 86, y: 50, tone: "indoor" as const, badge: "🎧" }, // 공연/음악/실내
+
+      // ✅ 이동/역(실내로 두는 게 화면 톤 정리에 유리)
+      { x: 60, y: 30, tone: "indoor" as const, badge: "🚇" }, // 역/이동
+      { x: 70, y: 38, tone: "indoor" as const, badge: "🎁" }, // 이벤트/혜택(실내)
     ],
     []
   );
+
 
   const closeAllMatch = useCallback(() => {
     setMatchStep("closed");
@@ -645,23 +672,70 @@ export default function NeighborhoodMapView() {
         <RealisticMapLayer />
 
         {/* 지도 마커(모임) 개수 늘림 */}
-        {meetings.slice(0, markerSlots.length).map((m, i) => (
-          <MapMarker
-            key={(m as any).id ?? (m as any).title ?? i}
-            x={markerSlots[i].x}
-            y={markerSlots[i].y}
-            label={(m as any).title}
-            badge={markerSlots[i].badge}
-            tone={markerSlots[i].tone}
-            pulse={i === 0}
-            onClick={() => setSelectedMeeting(m)}
-          />
-        ))}
+        {pinsOn &&
+          meetings.slice(0, markerSlots.length).map((m, i) => {
+            const id = (m as any).id ?? (m as any).title ?? i;
+
+            return (
+              <MapMarker
+                key={id}
+                x={markerSlots[i].x}
+                y={markerSlots[i].y}
+                label={(m as any).title}
+                badge={markerSlots[i].badge}
+                tone={markerSlots[i].tone}
+                pulse={i === 0}
+                selected={activeMarkerId === id}
+                onClick={() => {
+                  setSelectedMeeting(m);
+
+                  // ✅ 같은 마커 다시 누르면 라벨 닫기(토글)
+                  setActiveMarkerId((prev) => (prev === id ? null : id));
+                }}
+              />
+            );
+          })}
+
 
         <div className="absolute right-4 top-24 z-20 flex flex-col gap-2">
-          <FloatingButton onClick={() => showToast("현재 위치로 이동", 1400)} aria-label="현재 위치">
+          <FloatingButton
+            onClick={() => {
+              setPinsOn((v) => {
+                const next = !v;
+
+                // ✅ 한 번이라도 눌렀으면 유도 이펙트 끔
+                if (nudgeLocate) setNudgeLocate(false);
+
+                // 마커를 끄면, 라벨/선택도 같이 정리
+                if (!next) {
+                  setActiveMarkerId(null);
+                  setSelectedMeeting(null);
+                }
+
+                showToast(next ? "주변 모임 아이콘 표시" : "아이콘 숨김", 1400);
+                return next;
+              });
+            }}
+            aria-label="현재 위치"
+            className={cn(
+              "relative",
+              nudgeLocate ? "ring-2 ring-orange-400/50" : ""
+            )}
+          >
+            {/* ✅ 버튼 주변 반짝/펄스 */}
+            {nudgeLocate && (
+              <>
+                <span className="pointer-events-none absolute -inset-1 rounded-full bg-orange-400/20 animate-ping" />
+                <span className="pointer-events-none absolute -inset-2 rounded-full ring-2 ring-orange-400/30 animate-pulse" />
+                <span className="pointer-events-none absolute left-1/2 top-full mt-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-neutral-900 px-3 py-1 text-[11px] font-semibold text-white shadow-lg">
+                  눌러서 주변 보기
+                </span>
+              </>
+            )}
+
             <Crosshair className="h-5 w-5" />
           </FloatingButton>
+
           <FloatingButton onClick={() => showToast("관심 지역 설정", 1400)} aria-label="관심">
             <Heart className="h-5 w-5" />
           </FloatingButton>
