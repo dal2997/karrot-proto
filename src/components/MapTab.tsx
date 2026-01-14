@@ -230,7 +230,10 @@ function MapMarker({
       type="button"
       onClick={onClick}
       style={{ left: `${x}%`, top: `${y}%` }}
-      className="absolute -translate-x-1/2 -translate-y-1/2"
+      className={cn(
+        "absolute -translate-x-1/2 -translate-y-1/2",
+        selected ? "z-[80]" : "z-[20]"
+      )}
       aria-label={label ? `${label} 마커` : "마커"}
     >
       {/* ✅ 여기서 icon/label을 분리: icon은 고정, label은 absolute로 옆에 */}
@@ -255,7 +258,16 @@ function MapMarker({
 
         {/* ✅ 라벨은 absolute로 오른쪽에만 떠서 아이콘 위치 절대 안 밀림 */}
         {selected && label ? (
-          <span className="absolute left-full top-1/2 ml-2 -translate-y-1/2 whitespace-nowrap rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-neutral-900 shadow ring-1 ring-neutral-200">
+          <span
+            className="
+              absolute left-1/2 top-0
+              -translate-x-1/2 -translate-y-[110%]
+              whitespace-nowrap
+              rounded-full bg-white/95 px-3 py-1
+              text-xs font-semibold text-neutral-900
+              shadow ring-1 ring-neutral-200
+            "
+          >
             {label}
           </span>
         ) : null}
