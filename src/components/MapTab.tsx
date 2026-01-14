@@ -26,6 +26,12 @@ function cn(...classes: Array<string | false | undefined | null>) {
 }
 
 /** ====== helpers ====== */
+function formatKm(value: unknown, digits = 1) {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return "?";
+  return n.toFixed(digits).replace(/\.0+$/, ""); // 2.0 -> 2
+}
+
 function useBodyScrollLock(locked: boolean) {
   useEffect(() => {
     if (!locked) return;
@@ -344,7 +350,7 @@ function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => vo
           <ScorePill score={score} />
           <div className="mt-2 text-base font-extrabold text-neutral-900">{(meeting as any).title}</div>
           <div className="mt-1 text-sm text-neutral-600">
-            {(meeting as any).location ?? (meeting as any).place ?? "장소"} · {(meeting as any).distanceKm ?? "?"}km ·{" "}
+            {(meeting as any).location ?? (meeting as any).place ?? "장소"} · {formatKm((meeting as any).distanceKm)}km ·{" "}
             {(meeting as any).participants ?? (meeting as any).count ?? ""}
           </div>
           <div className="mt-2 flex items-center gap-3 text-xs text-neutral-600">
@@ -1084,7 +1090,7 @@ export default function NeighborhoodMapView() {
                   <div className="min-w-0">
                     <div className="text-base font-extrabold text-neutral-900">{(m as any).title}</div>
                     <div className="mt-1 text-sm text-neutral-600">
-                      {(m as any).location ?? (m as any).place ?? "장소"} · {(m as any).distanceKm ?? "?"}km ·{" "}
+                      {(m as any).location ?? (m as any).place ?? "장소"} · {formatKm((m as any).distanceKm)}km ·{" "}
                       {(m as any).participants ?? (m as any).count ?? ""}
                     </div>
                   </div>
@@ -1102,7 +1108,6 @@ export default function NeighborhoodMapView() {
             <div className="rounded-2xl bg-white p-4 ring-1 ring-neutral-200">
               <div className="text-sm font-extrabold text-neutral-900">참여/예약</div>
               <div className="mt-2 text-sm text-neutral-600">
-                여기서 “상세페이지로 이동”을 붙이면 됨 (지금은 프로토타입이라 시트 안에서 상세 표현)
               </div>
               <button
                 type="button"

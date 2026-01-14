@@ -676,7 +676,6 @@ function MeetingDetailScreen({
         <div className="mt-5 text-2xl font-extrabold text-neutral-900">{item.title}</div>
 
         <div className="mt-3 text-sm leading-relaxed text-neutral-700">
-          사진과 내용은 프로토타입용 더미입니다. 실제 모임 소개글이 들어갈 자리예요.
           오늘은 가볍게 모여서 분위기 좋게 운동하고, 끝나고 근처에서 간단히 정리하는 모임!
         </div>
 
