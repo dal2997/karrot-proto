@@ -1,6 +1,3 @@
-// src/tabs/MapTab.tsx (혹은 NeighborhoodMapView.tsx)
-// ✅ 전체 교체본: BottomSheet 상세(점수/이유) + 매칭(10명 모션) + 추천 3옵션 + 모임장 설정
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -782,14 +779,47 @@ function MetricRow({
   );
 }
 
+
+function RiskBadge({ value }: { value: number }) {
+  const v = Math.round(value);
+
+  // 낮을수록 좋음 => v가 낮으면 "좋음" 톤
+  const label = v <= 15 ? "낮음" : v <= 35 ? "보통" : "높음";
+
+  const tone =
+    v <= 15
+      ? { wrap: "bg-emerald-50 ring-emerald-100", text: "text-emerald-800", pill: "bg-white ring-emerald-100 text-emerald-900" }
+      : v <= 35
+      ? { wrap: "bg-amber-50 ring-amber-100", text: "text-amber-900", pill: "bg-white ring-amber-100 text-amber-950" }
+      : { wrap: "bg-rose-50 ring-rose-100", text: "text-rose-900", pill: "bg-white ring-rose-100 text-rose-950" };
+
+  return (
+    <div className={cn("flex items-center justify-between rounded-2xl px-3 py-2 ring-1", tone.wrap)}>
+      <div className="flex items-center gap-2">
+        <div className={cn("text-xs font-extrabold", tone.text)}>
+          취소 위험 <span className="font-semibold opacity-70">· 낮을수록 좋음</span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-extrabold ring-1", tone.pill)}>
+          {label}
+        </span>
+        <span className="text-sm font-extrabold text-neutral-900">{v}%</span>
+      </div>
+    </div>
+  );
+}
+
+
 function ReasonPanel({ metrics }: { metrics: MatchMetrics }) {
   return (
     <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
       <div className="text-xs font-extrabold text-neutral-700">종합 이유</div>
 
       <div className="mt-2 grid gap-3">
+        <RiskBadge value={metrics.cancelRisk} />
         <MetricRow label="성사 가능성" value={metrics.successProb} hint="최근 유사 모임 기준" />
-        <MetricRow label="취소 위험" value={metrics.cancelRisk} goodHigh={false} hint="낮을수록 좋음" />
         <MetricRow label="초보 환영" value={metrics.beginnerFriendly} hint="초보 참여비중" />
         <MetricRow label="연령대 적합도" value={metrics.ageFit} hint="내 프로필 대비" />
       </div>
