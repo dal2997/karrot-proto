@@ -18,6 +18,7 @@ import {
   X,
   Zap,
   MapPin,
+  CloudRain,
 } from "lucide-react";
 import { mapChips, mapMeetings } from "../data/mock";
 
@@ -26,6 +27,157 @@ function cn(...classes: Array<string | false | undefined | null>) {
 }
 
 /** ====== helpers ====== */
+
+/** ====== location/place 더미 생성기 ====== */
+const PLACE_POIS = [
+  {
+    place: "보라매공원",
+    subs: ["남문", "북문", "잔디광장", "중앙분수", "런닝트랙", "정문", "연못앞", "키즈존"],
+  },
+  {
+    place: "신림역",
+    subs: ["1번 출구", "3번 출구", "스타벅스 앞", "버스정류장", "먹자골목 입구", "횡단보도 앞"],
+  },
+  {
+    place: "서울대입구역",
+    subs: ["2번 출구", "관악로 입구", "버스환승센터", "은행거리", "샤로수길 초입"],
+  },
+  {
+    place: "낙성대공원",
+    subs: ["정문", "동상 앞", "산책로 입구", "벤치존", "주차장 옆"],
+  },
+  {
+    place: "도림천",
+    subs: ["산책로", "자전거길", "다리 밑", "운동기구존", "물가 전망대"],
+  },
+];
+
+function seededPlace(i: number) {
+  const p = PLACE_POIS[i % PLACE_POIS.length];
+  return p.place;
+}
+
+/** "보라매공원/낙측" 같은 서브 라벨 (스샷 감성) */
+function seededSubPlace(i: number) {
+  const p = PLACE_POIS[i % PLACE_POIS.length];
+  const sub = p.subs[(i * 3) % p.subs.length];
+  // 너가 말한 "낙측" 같은 단어를 일부 케이스에 끼워 넣음
+  const extra = ["낙측", "동측", "서측", "남측", "북측"];
+  const tail = i % 4 === 0 ? `/${extra[(i * 7) % extra.length]}` : "";
+  return `${sub}${tail}`;
+}
+
+/** ✅ UI에 표시할 최종 location 텍스트 */
+function seededLocationText(i: number) {
+  // "보라매공원 · 남문/낙측" 형태로 쓰고 싶으면 여기서 조립
+  return `${seededPlace(i)} · ${seededSubPlace(i)}`;
+}
+
+/** m에 location/place가 없으면 채워넣기 */
+function ensureLocation<T extends Record<string, any>>(m: T, i: number): T {
+  const hasLoc = !!(m.location ?? m.place);
+  if (hasLoc) return m;
+
+  // location에 "보라매공원 · 남문/낙측" 형태로 박아버리기
+  return {
+    ...m,
+    location: seededLocationText(i),
+  };
+}
+
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+/** idx 기반으로 "10:00~15:00" 같은 더미 시간대 생성 */
+function seededTimeRange(i: number) {
+  // 시작: 9~18시 사이
+  const startH = 9 + (i * 2) % 10; // 9..18
+  const startM = i % 2 === 0 ? 0 : 30;
+  // 종료: 1~3시간 뒤
+  const dur = 1 + (i % 3); // 1,2,3
+  const endH = startH + dur;
+  const endM = startM;
+
+  return `${pad2(startH)}:${pad2(startM)}~${pad2(endH)}:${pad2(endM)}`;
+}
+
+/** 2.6~4.7 사이 고르게 분포되는 더미 당근점수 */
+function seededCarrotScore(i: number) {
+  // 0..1
+  const v = (Math.sin((i + 1) * 77.7) + 1) / 2;
+  const score = 2.6 + v * (4.7 - 2.6);
+  return Math.round(score * 10) / 10; // 소수 1자리
+}
+
+const ACTIVITY_TITLES = [
+  "점심 경도", "러닝 번개", "산책 메이트", "배드민턴", "요가", "보드게임", "독서모임", "카페 수다"
+];
+
+function seededMeetingTitle(i: number) {
+  const place = seededPlace(i);
+  const act = ACTIVITY_TITLES[i % ACTIVITY_TITLES.length];
+  return `${place} ${act}`;
+}
+
+
+/** 성사 가능성 라벨/톤 */
+function successLabel(v: number) {
+  if (v >= 75) return "높음";
+  if (v >= 55) return "보통";
+  return "낮음";
+}
+
+function successTone(label: "높음" | "보통" | "낮음") {
+  switch (label) {
+    case "높음":
+      return {
+        wrap: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+        badge: "bg-white text-emerald-900 ring-emerald-100",
+        labelText: "text-emerald-700",
+      };
+    case "보통":
+      return {
+        wrap: "bg-amber-50 text-amber-900 ring-amber-100",
+        badge: "bg-white text-amber-950 ring-amber-100",
+        labelText: "text-amber-800",
+      };
+    case "낮음":
+      return {
+        wrap: "bg-rose-50 text-rose-900 ring-rose-100",
+        badge: "bg-white text-rose-950 ring-rose-100",
+        labelText: "text-rose-800",
+      };
+  }
+}
+
+function SuccessChanceChip({ value }: { value: number }) {
+  const label = successLabel(value) as "높음" | "보통" | "낮음";
+  const tone = successTone(label);
+
+  return (
+    <div
+      className={[
+        // ✅ 핵심: w-full + flex 로 꽉 차게
+        "flex w-full items-center justify-between rounded-2xl px-4 py-3 text-[12px] font-extrabold ring-1",
+        tone.wrap,
+      ].join(" ")}
+      title={`성사 가능성: ${label}`}
+    >
+      <span className={tone.labelText}>성사 가능성</span>
+      <span
+        className={[
+          "rounded-xl px-2.5 py-1 text-[12px] font-extrabold ring-1",
+          tone.badge,
+        ].join(" ")}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
 function formatKm(value: unknown, digits = 1) {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return "?";
@@ -333,6 +485,18 @@ function ScorePill({ score }: { score: number }) {
 type Meeting = (typeof mapMeetings)[number] & {
   aiScore?: number;
   aiReason?: string;
+
+  // ✅ 추가
+  timeRange?: string;      // "10:00~15:00"
+  carrotScore?: number;    // 2.6~4.7
+  successProb?: number;    // 0~100
+  cancelRisk?: number;     // 0~100 (높을수록 위험)
+  alternatives?: Array<{
+    title: string;
+    kind: "실내 놀거리" | "카페" | "식당";
+    dist: string;
+    desc: string;
+  }>;
 };
 
 function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => void }) {
@@ -343,37 +507,61 @@ function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => vo
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-2xl bg-white p-4 text-left ring-1 ring-neutral-200 hover:bg-neutral-50"
+      className="
+        relative w-full
+        rounded-2xl bg-white p-4
+        ring-1 ring-neutral-200 hover:bg-neutral-50
+      "
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <ScorePill score={score} />
-          <div className="mt-2 text-base font-extrabold text-neutral-900">{(meeting as any).title}</div>
-          <div className="mt-1 text-sm text-neutral-600">
-            {(meeting as any).location ?? (meeting as any).place ?? "장소"} · {formatKm((meeting as any).distanceKm)}km ·{" "}
-            {(meeting as any).participants ?? (meeting as any).count ?? ""}
-          </div>
-          <div className="mt-2 flex items-center gap-3 text-xs text-neutral-600">
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-4 w-4" /> {(meeting as any).time ?? "오늘"}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Sun className="h-4 w-4" /> {(meeting as any).weather ?? "—"}
-            </span>
-          </div>
+      {/* ✅ 우측 화살표는 absolute로 빼서 중앙정렬 방해 제거 */}
+      <ChevronRight className="absolute right-4 top-4 h-5 w-5 text-neutral-300" />
 
-          {/* ✅ LifeTab 느낌의 “왜 적절한지” 카드 */}
-          <div className="mt-3 rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200">
-            <div className="text-xs font-extrabold text-neutral-700">왜 이 모임이 적절해요?</div>
-            <div className="mt-1 text-sm text-neutral-700">{reason}</div>
-          </div>
+      {/* ✅ 전체를 중앙 정렬 */}
+      <div className="flex flex-col items-center text-center">
+        <ScorePill score={score} />
 
+        <div className="mt-2 text-base font-extrabold text-neutral-900">
+          {(meeting as any).title}
         </div>
-        <ChevronRight className="h-5 w-5 text-neutral-400" />
+
+        <div className="mt-1 text-sm text-neutral-600">
+          {(meeting as any).location ?? (meeting as any).place ?? "장소"} ·{" "}
+          {formatKm((meeting as any).distanceKm)}km ·{" "}
+          {(meeting as any).participants ?? (meeting as any).count ?? ""}
+        </div>
+
+        {/* ✅ 아이콘 라인도 중앙 */}
+        <div className="mt-2 flex items-center justify-center gap-3 text-xs text-neutral-600">
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-4 w-4" /> {(meeting as any).time ?? "오늘"}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Sun className="h-4 w-4" /> {(meeting as any).weather ?? "—"}
+          </span>
+        </div>
+
+        {/* ✅ 내부 카드들은 다시 꽉 차게 w-full */}
+        <div className="mt-3 w-full rounded-2xl bg-white p-4 ring-1 ring-neutral-200 text-left">
+          <div className="text-xs font-extrabold text-neutral-500">당근점수</div>
+          <div className="mt-1 text-base font-extrabold text-neutral-900">
+            {(meeting as any).carrotScore ?? 3.6}
+            <span className="ml-2 text-xs font-bold text-neutral-500">평균 3.6</span>
+          </div>
+
+          <div className="mt-2">
+            <SuccessChanceChip value={(meeting as any).successProb ?? 60} />
+          </div>
+        </div>
+
+        <div className="mt-3 w-full rounded-2xl bg-neutral-50 p-3 ring-1 ring-neutral-200 text-left">
+          <div className="text-xs font-extrabold text-neutral-700">왜 이 모임이 적절해요?</div>
+          <div className="mt-1 text-sm text-neutral-700">{reason}</div>
+        </div>
       </div>
     </button>
   );
 }
+
 
 function RealisticMapLayer() {
   return (
@@ -627,6 +815,120 @@ function ReasonPanel({ metrics }: { metrics: MatchMetrics }) {
   );
 }
 
+function ReserveRiskModal({
+  open,
+  onClose,
+  meeting,
+  containerRef,
+  onProceed,
+}: {
+  open: boolean;
+  onClose: () => void;
+  meeting: Meeting | null;
+  containerRef: React.RefObject<HTMLElement | null>;
+  onProceed: () => void;
+}) {
+  if (!meeting) return null;
+
+  const weather = (meeting as any).weather ?? "흐림";
+  const successProb = (meeting as any).successProb ?? 60;
+  const cancelRisk = (meeting as any).cancelRisk ?? 30;
+
+  // 인원부족: "3/15명" 같은 형식이면 더 현실적으로 판단
+  const partText = ((meeting as any).participants ?? (meeting as any).count ?? "") as string;
+  const m = partText.match(/(\d+)\s*\/\s*(\d+)/);
+  const lowPeople = m ? Number(m[1]) / Number(m[2]) < 0.35 : false;
+
+  const rainyRisk = weather.includes("비") || weather.includes("소나기") || weather.includes("우천");
+
+  const reasons = [
+    ...(rainyRisk ? ["우천 예보가 있어 취소될 수 있어요"] : ["날씨는 비교적 안정적이에요"]),
+    ...(lowPeople ? ["현재 참여 인원이 적어 인원부족으로 취소될 수 있어요"] : []),
+    `예상 취소 위험: ${Math.round(cancelRisk)}%`,
+  ];
+
+  const alternatives =
+    (meeting as any).alternatives ??
+    [
+      { title: "보드게임 카페 ‘플레이존’", kind: "실내 놀거리", dist: "도보 6분", desc: "보드게임 + 음료 / 2시간 패키지" },
+      { title: "카페 ‘라떼하우스’", kind: "카페", dist: "도보 4분", desc: "단체석 OK · 조용한 좌석" },
+      { title: "식당 ‘국밥한그릇’", kind: "식당", dist: "도보 7분", desc: "든든하게 먹고 주변 산책 코스" },
+    ];
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="모임 취소 위험 알림"
+      containerRef={containerRef}
+      maxW="460px"
+    >
+      <div className="space-y-4">
+        <div className="rounded-2xl bg-orange-50 p-4 ring-1 ring-orange-100">
+          <div className="flex items-center gap-2">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-white ring-1 ring-orange-100">
+              <CloudRain className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <div className="text-sm font-extrabold text-neutral-900">
+                {(meeting as any).title}
+              </div>
+              <div className="mt-0.5 text-xs font-bold text-neutral-600">
+                성사 가능성(예상): {successLabel(successProb)} · {Math.round(successProb)}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 취소 사유 */}
+        <div className="rounded-2xl bg-neutral-50 p-4 ring-1 ring-neutral-200">
+          <div className="text-xs font-extrabold text-neutral-900">취소 사유(예상)</div>
+          <ul className="mt-2 space-y-1 text-xs text-neutral-700">
+            {reasons.map((r) => (
+              <li key={r}>• {r}</li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 대체 플랜 추천 */}
+        <div>
+          <div className="text-xs font-extrabold text-neutral-900">주변 대체 플랜 추천</div>
+          <div className="mt-2 space-y-2">
+            {alternatives.map((a: any) => (
+              <div key={a.title} className="rounded-2xl bg-white p-3 ring-1 ring-neutral-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-extrabold text-neutral-900">{a.title}</div>
+                  <div className="text-[10px] font-extrabold text-neutral-500">{a.dist}</div>
+                </div>
+                <div className="mt-1 text-[11px] font-bold text-orange-600">#{a.kind}</div>
+                <div className="mt-1 text-xs text-neutral-700">{a.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 액션 */}
+        <div className="flex gap-2 pt-1">
+          <button
+            type="button"
+            onClick={onProceed}
+            className="flex-1 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-extrabold text-white"
+          >
+            그래도 예약
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 rounded-2xl bg-white px-4 py-3 text-sm font-extrabold ring-1 ring-neutral-200 hover:bg-neutral-50"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function NeighborhoodMapView() {
 
   const chipRowRef = useRef<HTMLDivElement | null>(null);
@@ -645,6 +947,9 @@ export default function NeighborhoodMapView() {
 
   const [activeChip, setActiveChip] = useState<ChipKey>(mapChips[0]?.key ?? ("deal" as ChipKey));
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+
+  /** 예약/참여 -> 취소 위험 + 대체 플랜 모달 */
+  const [reserveOpen, setReserveOpen] = useState(false);
 
   /** toast */
   const [toast, setToast] = useState<string | null>(null);
@@ -714,31 +1019,66 @@ export default function NeighborhoodMapView() {
   /** meetings: 부족하면 더미로 확장 + aiScore/aiReason 더미 채우기 */
   const meetings = useMemo<Meeting[]>(() => {
     const base = (mapMeetings as any[]).map((m, idx) => {
-      const aiScore = (m?.aiScore ?? seededScore(idx)) as number;
-      const aiReason = (m?.aiReason ?? pickReason(idx)) as string;
-      return { ...m, aiScore, aiReason } as Meeting;
-    });
+    const aiScore = (m?.aiScore ?? seededScore(idx)) as number;
+    const aiReason = (m?.aiReason ?? pickReason(idx)) as string;
 
-    const need = 20; // 지도 마커/리스트 충분히 보이게
-    if (base.length >= need) return base;
+    const timeRange = (m as any)?.timeRange ?? seededTimeRange(idx);
+    const carrotScore = (m as any)?.carrotScore ?? seededCarrotScore(idx);
 
-    const extra: Meeting[] = [];
-    for (let i = base.length; i < need; i++) {
-      const src = base[i % base.length] ?? {};
-      extra.push({
-        ...(src as any),
+    const successProb = Math.max(40, Math.min(95, 45 + (aiScore - 55) * 1.1));
+    const cancelRisk = Math.max(5, Math.min(70, 55 - (aiScore - 55) * 0.9));
+
+    // ✅ 핵심: location/place 자동 주입
+    const withLoc = ensureLocation(m as any, idx);
+
+    return {
+      ...withLoc,
+      aiScore,
+      aiReason,
+      timeRange,
+      carrotScore,
+      successProb,
+      cancelRisk,
+    } as Meeting;
+  });
+
+
+    // ✅ base가 비어있으면 (mapMeetings가 비어있을 때) 여기서 바로 더미 생성으로 넘어가야 안전
+    const need = 20;
+    const all: Meeting[] = [];
+
+    // 1) base 먼저 넣기
+    all.push(...base);
+
+    // 2) 부족하면 더미 추가 (base가 0이어도 문제 없게)
+    for (let i = all.length; i < need; i++) {
+      all.push({
         id: `dummy-${i}`,
-        title: (src as any).title ?? "모임",
+        title: seededMeetingTitle(i),
+        location: seededLocationText(i), // ✅ 추가 (스샷 감성)
         distanceKm: ((i % 7) + 1) * 0.3,
-        participants: `${(i % 6) + 3}명`,
+        participants: `${(i % 6) + 3}/${(i % 8) + 10}명`,
         time: i % 2 === 0 ? "오늘" : "내일",
+        timeRange: seededTimeRange(i),
         weather: i % 3 === 0 ? "맑음" : "흐림",
         aiScore: seededScore(i),
         aiReason: pickReason(i),
+        carrotScore: seededCarrotScore(i),
+        successProb: Math.max(40, Math.min(95, 45 + (seededScore(i) - 55) * 1.1)),
+        cancelRisk: Math.max(5, Math.min(70, 55 - (seededScore(i) - 55) * 0.9)),
+        alternatives: [
+          { title: "실내 클라이밍 ‘클라임핏’", kind: "실내 놀거리", dist: "도보 8분", desc: "초보 체험 가능 · 장비 대여" },
+          { title: "카페 ‘오트라떼’", kind: "카페", dist: "도보 5분", desc: "단체 테이블 · 대화하기 좋은 분위기" },
+          { title: "식당 ‘돈카츠정’", kind: "식당", dist: "도보 6분", desc: "웨이팅 짧음 · 점심/저녁 무난" },
+        ],
       } as any);
 
     }
-    return [...base, ...extra];
+
+    // ✅ 여기서 “복사본 정렬” (원본 all은 이미 새 배열이라 안전하지만 습관적으로 slice)
+    return all
+      .slice()
+      .sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0));
   }, []);
 
   /** 지도 마커 슬롯(늘림) */
@@ -1084,21 +1424,37 @@ export default function NeighborhoodMapView() {
                 key={(m as any).id ?? idx}
                 type="button"
                 onClick={() => setSelectedMeeting(m)}
-                className="w-full rounded-2xl bg-white p-4 text-left ring-1 ring-neutral-200 hover:bg-neutral-50"
+                className="
+                  w-full rounded-3xl bg-white px-5 py-4 text-left
+                  ring-1 ring-neutral-100
+                  shadow-[0_1px_0_rgba(0,0,0,0.04)]
+                  hover:bg-neutral-50
+                "
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-base font-extrabold text-neutral-900">{(m as any).title}</div>
-                    <div className="mt-1 text-sm text-neutral-600">
-                      {(m as any).location ?? (m as any).place ?? "장소"} · {formatKm((m as any).distanceKm)}km ·{" "}
-                      {(m as any).participants ?? (m as any).count ?? ""}
+                    <div className="truncate text-lg font-extrabold text-neutral-900">
+                      {(m as any).title}
+                    </div>
+
+                    <div className="mt-1 truncate text-sm font-medium text-neutral-500">
+                      {((m as any).location ?? (m as any).place) ? (
+                        <>
+                          {(m as any).location ?? (m as any).place} ·{" "}
+                        </>
+                      ) : null}
+                      {formatKm((m as any).distanceKm)}km ·{" "}
+                      {(m as any).participants ?? (m as any).count ?? ""} ·{" "}
+                      {(m as any).timeRange ?? "13:30~15:30"}
                     </div>
                   </div>
+
                   <div className="shrink-0">
                     <ScorePill score={(m.aiScore ?? 0) as number} />
                   </div>
                 </div>
               </button>
+
             ))}
           </div>
         ) : (
@@ -1128,7 +1484,7 @@ export default function NeighborhoodMapView() {
               </button>
               <button
                 type="button"
-                onClick={() => showToast("프로토타입: 참여/예약", 1400)}
+                onClick={() => setReserveOpen(true)}
                 className="flex-1 rounded-2xl bg-orange-500 px-4 py-3 text-sm font-extrabold text-white"
               >
                 예약/참여
@@ -1446,7 +1802,16 @@ export default function NeighborhoodMapView() {
           </button>
         </div>
       </Modal>
-
+      <ReserveRiskModal
+        open={reserveOpen}
+        onClose={() => setReserveOpen(false)}
+        meeting={selectedMeeting as any}
+        containerRef={frameRef}
+        onProceed={() => {
+          setReserveOpen(false);
+          showToast("예약 완료(프로토타입)", 1400);
+        }}
+      />
       <Toast open={!!toast} text={toast ?? ""} containerRef={frameRef} />
     </div>
   );

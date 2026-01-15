@@ -462,12 +462,57 @@ function GreenScorePill({ score }: { score: number }) {
   );
 }
 
+function successLabel(v: number) {
+  if (v >= 75) return "높음";
+  if (v >= 55) return "보통";
+  return "주의";
+}
+
+function successTone(label: "높음" | "보통" | "주의") {
+  // ✅ 바깥 칩(배경/테두리/글자) + ✅ 안쪽 배지(배경/테두리/글자)
+  switch (label) {
+    case "높음":
+      return {
+        wrap: "bg-emerald-50 text-emerald-800 ring-emerald-100",
+        badge: "bg-white text-emerald-900 ring-emerald-100",
+        labelText: "text-emerald-700",
+      };
+    case "보통":
+      return {
+        wrap: "bg-amber-50 text-amber-900 ring-amber-100",
+        badge: "bg-white text-amber-950 ring-amber-100",
+        labelText: "text-amber-800",
+      };
+    case "주의":
+      return {
+        wrap: "bg-rose-50 text-rose-900 ring-rose-100",
+        badge: "bg-white text-rose-950 ring-rose-100",
+        labelText: "text-rose-800",
+      };
+  }
+}
+
 function SuccessChanceChip({ value }: { value: number }) {
+  const label = successLabel(value) as "높음" | "보통" | "주의";
+  const tone = successTone(label);
+
   return (
-    <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2 text-[12px] font-extrabold text-emerald-800 ring-1 ring-emerald-100">
-      <span className="text-emerald-700">성사 가능성</span>
-      <span className="rounded-xl bg-white px-2 py-1 text-[12px] font-extrabold text-emerald-900 ring-1 ring-emerald-100">
-        {value}%
+    <div
+      className={[
+        "inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[12px] font-extrabold ring-1",
+        tone.wrap,
+      ].join(" ")}
+      title={`성사 가능성: ${label}`}
+    >
+      <span className={tone.labelText}>성사 가능성</span>
+
+      <span
+        className={[
+          "rounded-xl px-2 py-1 text-[12px] font-extrabold ring-1",
+          tone.badge,
+        ].join(" ")}
+      >
+        {label}
       </span>
     </div>
   );
@@ -795,7 +840,7 @@ function LifeMeetView() {
         report: {
           carrotTradeFit: "동네 거래/활동 반경이 보라매권과 유사",
           taste: "운동/산책 키워드 선호 + 저녁 시간대 활동",
-          carrotScore: "당근점수 4.7 기반 신뢰도 높음",
+          carrotScore: "당근점수 4.0 기반 신뢰도 높음",
           ageBand: "20–30대 비중 높고 사용자와 유사",
           genderRatio: "남 55% / 여 45% (균형형)",
           attendance: "최근 4주 평균 출석률 78%",
@@ -818,7 +863,7 @@ function LifeMeetView() {
         report: {
           carrotTradeFit: "대중교통 이동 패턴이 봉천권과 자주 겹침",
           taste: "‘초보/배움/동네친구’ 태그 반응 높음",
-          carrotScore: "당근점수 4.6 · 응답 속도 안정적",
+          carrotScore: "당근점수 3.8 · 응답 속도 안정적",
           ageBand: "20–40대 고르게 분포",
           genderRatio: "남 48% / 여 52%",
           attendance: "정기 모임 출석률 72%",
@@ -841,9 +886,9 @@ function LifeMeetView() {
         report: {
           carrotTradeFit: "주말 활동 반경이 관악권으로 자주 이동",
           taste: "자연/아웃도어 콘텐츠 반응이 높음",
-          carrotScore: "당근점수 4.5",
+          carrotScore: "당근점수 3.5",
           ageBand: "30대 비중 높음",
-          genderRatio: "남 50% / 여 50%",
+          genderRatio: "남 70% / 여 30%",
           attendance: "모임 출석률 69%",
           summary: "가볍게 즐기는 아웃도어 스타일이랑 맞아서 추천했어요.",
           successProbability: 67,
@@ -864,9 +909,9 @@ function LifeMeetView() {
         report: {
           carrotTradeFit: "퇴근 시간대 활동 로그와 일치",
           taste: "‘짧은 시간/직장인’ 키워드 선호",
-          carrotScore: "당근점수 4.7",
+          carrotScore: "당근점수 3.5",
           ageBand: "20–30대",
-          genderRatio: "남 60% / 여 40%",
+          genderRatio: "남 30% / 여 70%",
           attendance: "출석률 75%",
           summary: "짧고 확실하게 운동하는 성향이랑 잘 맞아요.",
           successProbability: 66,
@@ -887,7 +932,7 @@ function LifeMeetView() {
         report: {
           carrotTradeFit: "주중 저녁 이동 반경에 포함",
           taste: "새로운 체험형 콘텐츠 반응",
-          carrotScore: "당근점수 4.6",
+          carrotScore: "당근점수 2.6",
           ageBand: "20대 후반–30대 초반",
           genderRatio: "남 45% / 여 55%",
           attendance: "출석률 67%",
